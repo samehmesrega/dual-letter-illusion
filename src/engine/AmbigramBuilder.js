@@ -44,8 +44,8 @@ export async function buildAmbigram(options) {
   const font = await loadFont(fontUrl);
 
   const maxLen = Math.max(textA.length, textB.length);
-  const a = textA.toUpperCase().padEnd(maxLen, ' ');
-  const b = textB.toUpperCase().padEnd(maxLen, ' ');
+  const a = textA.toUpperCase().padEnd(maxLen, '\u2665');
+  const b = textB.toUpperCase().padEnd(maxLen, '\u2665');
 
   const group = new THREE.Group();
   let currentX = 0, maxHeight = 0, maxDepth = 0;
