@@ -264,28 +264,62 @@ function quadBezier(t, x0, y0, x1, y1, x2, y2) {
 // ── Heart shape builder ──────────────────────────────────────────────────────
 
 function buildHeartShape(fontSize) {
-  // Parametric heart curve: x = 16sin³(t), y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
-  // Scaled to match fontSize
-  const scale = fontSize / 36;
-  const numPoints = 64;
+  // Rounded heart with flat bottom for solid base connection.
+  // Built from two cubic bezier halves (right side mirrored to left).
+  const s = fontSize / 72; // scale factor
+  const seg = 16; // segments per bezier
+
+  // Right half bezier curves (bottom-center → right lobe top → top-center dip)
+  // Then mirrored for left half. Bottom is flat, not pointy.
+  const rightCurves = [
+    // Bottom flat segment → right side
+    { x0: 0, y0: 0, x1: 8, y1: 0, x2: 16, y2: 8, x3: 16, y3: 18 },
+    // Right lobe → top center
+    { x0: 16, y0: 18, x1: 16, y1: 30, x2: 4, y2: 32, x3: 0, y3: 22 },
+  ];
+
   const points = [];
 
-  for (let i = 0; i < numPoints; i++) {
-    const t = (i / numPoints) * 2 * Math.PI;
-    const x = 16 * Math.pow(Math.sin(t), 3);
-    const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-    points.push([x * scale, y * scale]);
+  // Right half (bottom to top)
+  for (const c of rightCurves) {
+    for (let k = 0; k <= seg; k++) {
+      const t = k / seg;
+      const u = 1 - t;
+      const x = u*u*u*c.x0 + 3*u*u*t*c.x1 + 3*u*t*t*c.x2 + t*t*t*c.x3;
+      const y = u*u*u*c.y0 + 3*u*u*t*c.y1 + 3*u*t*t*c.y2 + t*t*t*c.y3;
+      points.push([x * s, y * s]);
+    }
+  }
+
+  // Left half (top to bottom, mirrored X)
+  for (let i = rightCurves.length - 1; i >= 0; i--) {
+    const c = rightCurves[i];
+    for (let k = seg; k >= 0; k--) {
+      const t = k / seg;
+      const u = 1 - t;
+      const x = u*u*u*c.x0 + 3*u*u*t*c.x1 + 3*u*t*t*c.x2 + t*t*t*c.x3;
+      const y = u*u*u*c.y0 + 3*u*u*t*c.y1 + 3*u*t*t*c.y2 + t*t*t*c.y3;
+      points.push([-x * s, y * s]);
+    }
+  }
+
+  // Remove duplicate points at seams
+  const cleaned = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const prev = cleaned[cleaned.length - 1];
+    if (Math.abs(points[i][0] - prev[0]) > 0.01 || Math.abs(points[i][1] - prev[1]) > 0.01) {
+      cleaned.push(points[i]);
+    }
   }
 
   // Ensure CCW winding
-  const area = computeSignedArea(points);
-  if (area < 0) points.reverse();
+  const area = computeSignedArea(cleaned);
+  if (area < 0) cleaned.reverse();
 
-  const shape = pointsToGeom2(points);
+  const shape = pointsToGeom2(cleaned);
 
-  // Compute bounds
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const p of points) {
+  for (const p of cleaned) {
     if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
     if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
   }
