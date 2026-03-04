@@ -15,7 +15,7 @@ const state = {
   fontSize:      72,
   cornerRadius:  5,
   baseThickness: 2,
-  heartStyle:    1,
+  heartStyle:    9,
   inscriptionText: '',
   currentModel:  null
 };
