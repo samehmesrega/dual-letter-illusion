@@ -1,0 +1,258 @@
+import * as THREE from 'three';
+import { booleans, extrusions, primitives, transforms, geometries } from '@jscad/modeling';
+import { loadFont } from './FontLoader.js';
+import { glyphToJSCAD, textToJSCAD, getGlyphDebugLog } from './GlyphToJSCAD.js';
+import { jscadToThree } from './JscadToThree.js';
+
+/**
+ * Build a rounded-corner base plate via JSCAD (same pipeline as letters).
+ * JSCAD roundedRectangle → extrudeLinear → jscadToThree.
+ * Guarantees a solid, watertight mesh — bypasses Three.js cap triangulation.
+ */
+function buildRoundedPlateGeo(W, D, H, r) {
+  // JSCAD 2D rounded rectangle in XY plane
+  const plate2d = primitives.roundedRectangle({ size: [W, D], roundRadius: r, segments: 32 });
+  // Extrude along Z
+  const plate3d = extrusions.extrudeLinear({ height: H }, plate2d);
+  // Center in Z: shift from [0, H] to [-H/2, H/2]
+  const centered = transforms.translate([0, 0, -H / 2], plate3d);
+  // Convert to Three.js BufferGeometry (same converter used for letter meshes)
+  const geo = jscadToThree(centered);
+  // JSCAD works in XY+Z; we need plate in XZ with Y as height → rotate -90° on X
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}
+
+export const debugLog = [];
+function dbg(msg) { debugLog.push(msg); console.log(msg); }
+
+export async function buildAmbigram(options) {
+  const {
+    textA, textB, fontUrl,
+    fontSize        = 72,
+    spacing         = 8,
+    baseHeight      = 2,
+    basePadding     = 10,
+    cornerRadius    = 0,
+    inscriptionText = '',
+    inscriptionFontUrl = null
+  } = options;
+
+  debugLog.length = 0;
+  dbg(`=== BUILD START: "${textA}" + "${textB}" | font: ${fontUrl} | size: ${fontSize} ===`);
+
+  const font = await loadFont(fontUrl);
+
+  const maxLen = Math.max(textA.length, textB.length);
+  const a = textA.toUpperCase().padEnd(maxLen, ' ');
+  const b = textB.toUpperCase().padEnd(maxLen, ' ');
+
+  const group = new THREE.Group();
+  let currentX = 0, maxHeight = 0, maxDepth = 0;
+
+  for (let i = 0; i < maxLen; i++) {
+    const charA = a[i];
+    const charB = b[i];
+    dbg(`\n--- PAIR ${i}: '${charA}' + '${charB}' ---`);
+
+    if (charA === ' ' && charB === ' ') {
+      currentX += fontSize * 0.5;
+      continue;
+    }
+
+    // Glyph → JSCAD geom2
+    const resultA = glyphToJSCAD(font, charA, fontSize);
+    for (const line of getGlyphDebugLog()) dbg('  [A] ' + line);
+
+    const resultB = glyphToJSCAD(font, charB, fontSize);
+    for (const line of getGlyphDebugLog()) dbg('  [B] ' + line);
+
+    if (!resultA || !resultB) {
+      dbg('  SKIP — no shape');
+      currentX += fontSize * 0.5;
+      continue;
+    }
+
+    const { shape: shapeA, bounds: boundsA } = resultA;
+    const { shape: shapeB, bounds: boundsB } = resultB;
+
+    dbg(`  boundsA: ${boundsA.width.toFixed(1)}x${boundsA.height.toFixed(1)}`);
+    dbg(`  boundsB: ${boundsB.width.toFixed(1)}x${boundsB.height.toFixed(1)}`);
+
+    // Extrusion depth = 3× largest glyph dimension
+    const maxDim = Math.max(boundsA.width, boundsA.height, boundsB.width, boundsB.height);
+    const extrudeDepth = maxDim * 3;
+    dbg(`  extrudeDepth: ${extrudeDepth.toFixed(1)}`);
+
+    // Center each geom2 at XY origin before extrusion
+    const cxA = (boundsA.minX + boundsA.maxX) / 2;
+    const cyA = (boundsA.minY + boundsA.maxY) / 2;
+    const cxB = (boundsB.minX + boundsB.maxX) / 2;
+    const cyB = (boundsB.minY + boundsB.maxY) / 2;
+
+    const centeredA = transforms.translate([-cxA, -cyA, 0], shapeA);
+    const centeredB = transforms.translate([-cxB, -cyB, 0], shapeB);
+
+    // Extrude in Z direction (0 → extrudeDepth)
+    const extA = extrusions.extrudeLinear({ height: extrudeDepth }, centeredA);
+    const extB = extrusions.extrudeLinear({ height: extrudeDepth }, centeredB);
+
+    // Center in Z: shift from [0, depth] to [-depth/2, +depth/2]
+    const halfD = extrudeDepth / 2;
+    const centExtA = transforms.translate([0, 0, -halfD], extA);
+    const centExtB = transforms.translate([0, 0, -halfD], extB);
+
+    // Rotate: A at -45° (face toward -X+Z, green-arrow side), B at +45° (face toward +X+Z, yellow-arrow side)
+    // These two directions are perpendicular (dot=0), so CSG intersection works correctly.
+    const rotA = transforms.rotateY(-Math.PI / 4, centExtA);
+    const rotB = transforms.rotateY( Math.PI / 4, centExtB);
+
+    // CSG intersection
+    let jscadResult;
+    try {
+      jscadResult = booleans.intersect(rotA, rotB);
+    } catch (err) {
+      dbg(`  CSG FAILED: ${err.message}`);
+      currentX += fontSize * 0.5;
+      continue;
+    }
+
+    // Validate result
+    const polys = geometries.geom3.toPolygons(jscadResult);
+    if (!polys || polys.length === 0) {
+      dbg('  CSG empty result');
+      currentX += fontSize * 0.5;
+      continue;
+    }
+    dbg(`  CSG result: ${polys.length} polygons`);
+
+    // Convert to Three.js geometry
+    const geo = jscadToThree(jscadResult);
+    geo.computeBoundingBox();
+    const bbox = geo.boundingBox;
+    const rW = bbox.max.x - bbox.min.x;
+    const rH = bbox.max.y - bbox.min.y;
+    const rD = bbox.max.z - bbox.min.z;
+    dbg(`  size: ${rW.toFixed(1)} x ${rH.toFixed(1)} x ${rD.toFixed(1)}`);
+
+    if (rH < 0.1) {
+      dbg('  SKIP — zero height result');
+      currentX += fontSize * 0.5;
+      continue;
+    }
+
+    // Place side by side along X axis
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: 0xe8735a,   // warm terracotta — same tone as base for a unified print look
+      roughness: 0.45,
+      metalness: 0.0,
+      side: THREE.DoubleSide
+    }));
+
+    mesh.position.x = currentX - bbox.min.x;
+    currentX += rW + spacing;
+    maxHeight = Math.max(maxHeight, rH);
+    maxDepth  = Math.max(maxDepth,  rD);
+
+    mesh.name = `pair_${charA}_${charB}`;
+    group.add(mesh);
+  }
+
+  // ── Inscription (flat text on base, readable from above) ──
+  let inscrDepthExtra = 0;   // extra depth the base plate needs in +Z
+  const inscrExtrudeH = 2;   // 2 mm raised above base surface
+  const lettersCenterX = (currentX - spacing) / 2;
+  const inscrTrimmed = inscriptionText.trim();
+
+  if (group.children.length > 0 && inscrTrimmed) {
+    dbg(`\n--- INSCRIPTION: "${inscrTrimmed}" ---`);
+
+    // Load separate inscription font if provided, otherwise use main font
+    const inscrFont = inscriptionFontUrl ? await loadFont(inscriptionFontUrl) : font;
+
+    // Calculate font size: 7-word sentence (≈35 chars) ≤ 100 mm, cap at 14
+    const maxInscrW = 100;
+    const refWidth = inscrFont.getAdvanceWidth(inscrTrimmed, 72);
+    const inscrFontSize = Math.min(14, refWidth > 0 ? 72 * maxInscrW / refWidth : 14);
+    dbg(`  inscrFontSize: ${inscrFontSize.toFixed(1)}`);
+
+    // Full-string rendering: handles Arabic shaping, RTL, ligatures, kerning
+    const result = textToJSCAD(inscrFont, inscrTrimmed, inscrFontSize);
+    getGlyphDebugLog(); // clear log
+
+    if (result) {
+      const { shape, bounds } = result;
+      const cx = (bounds.minX + bounds.maxX) / 2;
+      const cy = (bounds.minY + bounds.maxY) / 2;
+      const centered = transforms.translate([-cx, -cy, 0], shape);
+
+      // Extrude 2 mm in Z, convert to Three.js
+      const extruded = extrusions.extrudeLinear({ height: inscrExtrudeH }, centered);
+      const geo = jscadToThree(extruded);
+      // Lay flat: X=text dir, Y=extrusion (up), Z=-glyph Y
+      geo.rotateX(-Math.PI / 2);
+
+      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+        color: 0xe8735a, roughness: 0.45, metalness: 0.0, side: THREE.DoubleSide
+      }));
+
+      geo.computeBoundingBox();
+      const bbox = geo.boundingBox;
+      const inscrW = bbox.max.x - bbox.min.x;
+      const inscrD = bbox.max.z - bbox.min.z;
+      dbg(`  inscription size: ${inscrW.toFixed(1)} x ${inscrD.toFixed(1)}`);
+
+      // Center horizontally, same as letters
+      mesh.position.x = lettersCenterX - inscrW / 2 - bbox.min.x;
+      // 5 mm gap between inscription and letters, 5 mm between inscription and base edge
+      const gapToLetters = 5;
+      const gapToEdge = 5;
+      mesh.position.z = maxDepth / 2 + gapToLetters - bbox.min.z;
+      // Bottom sits on base plate top surface
+      mesh.position.y = -maxHeight / 2 - bbox.min.y;
+
+      inscrDepthExtra = gapToLetters + inscrD + gapToEdge;
+      mesh.name = 'inscription';
+      group.add(mesh);
+    }
+  }
+
+  // ── Base plate ──
+  if (group.children.length > 0) {
+    const lettersW = currentX - spacing;
+    const totalW = Math.max(lettersW, 0) + basePadding * 2;
+    // Back side: basePadding. Front side (+Z): basePadding OR inscription area (whichever applies)
+    const frontPad = inscrDepthExtra > 0 ? inscrDepthExtra : basePadding;
+    const totalD = maxDepth + basePadding + frontPad;
+
+    // Z-center shifts when front extends more than back
+    const baseZCenter = (frontPad - basePadding) / 2;
+
+    const r = Math.min(cornerRadius, totalW / 2, totalD / 2);
+
+    const baseGeo = r > 0
+      ? buildRoundedPlateGeo(totalW, totalD, baseHeight, r)
+      : new THREE.BoxGeometry(totalW, baseHeight, totalD);
+
+    const base = new THREE.Mesh(
+      baseGeo,
+      new THREE.MeshStandardMaterial({ color: 0xe8735a, roughness: 0.45, metalness: 0.0, side: THREE.DoubleSide })
+    );
+
+    // Top surface touches letter bottoms
+    base.position.x = lettersCenterX;
+    base.position.y = -maxHeight / 2 - baseHeight / 2;
+    base.position.z = baseZCenter;
+    base.name = 'base_plate';
+    group.add(base);
+  }
+
+  // Center the whole group
+  const gBBox = new THREE.Box3().setFromObject(group);
+  const gCenter = new THREE.Vector3();
+  gBBox.getCenter(gCenter);
+  group.position.set(-gCenter.x, -gCenter.y, -gCenter.z);
+
+  dbg(`\n=== BUILD DONE: ${group.children.length} children ===`);
+  return group;
+}
