@@ -264,50 +264,49 @@ function quadBezier(t, x0, y0, x1, y1, x2, y2) {
 // ── Heart shape builder (20 variants) ────────────────────────────────────────
 
 // Each variant = array of right-half cubic bezier curves.
-// Mirrored on X for left half. All start at bottom-center (0,0).
-// All have "little pointy" bottom (first cp at ~55-65° from horizontal).
+// Mirrored on X for left half. x0>0 creates a small flat bottom (polygon auto-closes).
 // Heights are normalized to font cap height at render time.
 const HEART_VARIANTS = [
   // 1: Classic balanced
-  [{x0:0,y0:0, x1:3,y1:5, x2:20,y2:12, x3:20,y3:24}, {x0:20,y0:24, x1:20,y1:38, x2:4,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:6,y1:4, x2:20,y2:12, x3:20,y3:24}, {x0:20,y0:24, x1:20,y1:38, x2:4,y2:40, x3:0,y3:32}],
   // 2: Tall narrow
-  [{x0:0,y0:0, x1:2,y1:5, x2:15,y2:12, x3:15,y3:24}, {x0:15,y0:24, x1:15,y1:38, x2:3,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:5,y1:4, x2:15,y2:12, x3:15,y3:24}, {x0:15,y0:24, x1:15,y1:38, x2:3,y2:40, x3:0,y3:32}],
   // 3: Wide generous
-  [{x0:0,y0:0, x1:4,y1:4, x2:24,y2:12, x3:24,y3:22}, {x0:24,y0:22, x1:24,y1:36, x2:5,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:7,y1:3, x2:24,y2:12, x3:24,y3:22}, {x0:24,y0:22, x1:24,y1:36, x2:5,y2:40, x3:0,y3:32}],
   // 4: Deep cleft — pronounced V at top
-  [{x0:0,y0:0, x1:3,y1:5, x2:20,y2:12, x3:20,y3:26}, {x0:20,y0:26, x1:20,y1:40, x2:6,y2:34, x3:0,y3:24}],
+  [{x0:3,y0:0, x1:6,y1:4, x2:20,y2:12, x3:20,y3:26}, {x0:20,y0:26, x1:20,y1:40, x2:6,y2:34, x3:0,y3:24}],
   // 5: Shallow cleft — barely dipped top
-  [{x0:0,y0:0, x1:3,y1:5, x2:20,y2:12, x3:20,y3:22}, {x0:20,y0:22, x1:20,y1:34, x2:4,y2:40, x3:0,y3:36}],
+  [{x0:3,y0:0, x1:6,y1:4, x2:20,y2:12, x3:20,y3:22}, {x0:20,y0:22, x1:20,y1:34, x2:4,y2:40, x3:0,y3:36}],
   // 6: Balloon — very round circular lobes
-  [{x0:0,y0:0, x1:4,y1:5, x2:22,y2:16, x3:22,y3:24}, {x0:22,y0:24, x1:22,y1:34, x2:12,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:7,y1:4, x2:22,y2:16, x3:22,y3:24}, {x0:22,y0:24, x1:22,y1:34, x2:12,y2:40, x3:0,y3:32}],
   // 7: Angular — geometric, less curved
-  [{x0:0,y0:0, x1:2,y1:4, x2:18,y2:4, x3:18,y3:22}, {x0:18,y0:22, x1:18,y1:38, x2:2,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:5,y1:3, x2:18,y2:4, x3:18,y3:22}, {x0:18,y0:22, x1:18,y1:38, x2:2,y2:40, x3:0,y3:32}],
   // 8: Soft organic — flowing curves
-  [{x0:0,y0:0, x1:5,y1:6, x2:20,y2:16, x3:20,y3:24}, {x0:20,y0:24, x1:20,y1:34, x2:8,y2:38, x3:0,y3:30}],
+  [{x0:3,y0:0, x1:8,y1:5, x2:20,y2:16, x3:20,y3:24}, {x0:20,y0:24, x1:20,y1:34, x2:8,y2:38, x3:0,y3:30}],
   // 9: Slim elegant — refined proportions
-  [{x0:0,y0:0, x1:2,y1:6, x2:16,y2:12, x3:16,y3:24}, {x0:16,y0:24, x1:16,y1:38, x2:3,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:5,y1:5, x2:16,y2:12, x3:16,y3:24}, {x0:16,y0:24, x1:16,y1:38, x2:3,y2:40, x3:0,y3:32}],
   // 10: Bold thick — strong presence
-  [{x0:0,y0:0, x1:4,y1:4, x2:22,y2:10, x3:22,y3:22}, {x0:22,y0:22, x1:22,y1:38, x2:4,y2:40, x3:0,y3:30}],
+  [{x0:3,y0:0, x1:7,y1:3, x2:22,y2:10, x3:22,y3:22}, {x0:22,y0:22, x1:22,y1:38, x2:4,y2:40, x3:0,y3:30}],
   // 11: Pinched waist — narrow middle section
-  [{x0:0,y0:0, x1:2,y1:4, x2:20,y2:6, x3:20,y3:24}, {x0:20,y0:24, x1:20,y1:40, x2:4,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:5,y1:3, x2:20,y2:6, x3:20,y3:24}, {x0:20,y0:24, x1:20,y1:40, x2:4,y2:40, x3:0,y3:32}],
   // 12: Wide base — curves spread early
-  [{x0:0,y0:0, x1:6,y1:4, x2:22,y2:10, x3:22,y3:22}, {x0:22,y0:22, x1:22,y1:36, x2:5,y2:40, x3:0,y3:32}],
-  // 13: Teardrop — tapers gradually at bottom
-  [{x0:0,y0:0, x1:2,y1:6, x2:20,y2:16, x3:20,y3:26}, {x0:20,y0:26, x1:20,y1:38, x2:4,y2:40, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:8,y1:3, x2:22,y2:10, x3:22,y3:22}, {x0:22,y0:22, x1:22,y1:36, x2:5,y2:40, x3:0,y3:32}],
+  // 13: Teardrop — tapers gradually
+  [{x0:3,y0:0, x1:5,y1:5, x2:20,y2:16, x3:20,y3:26}, {x0:20,y0:26, x1:20,y1:38, x2:4,y2:40, x3:0,y3:32}],
   // 14: Squat — low and wide
-  [{x0:0,y0:0, x1:5,y1:4, x2:24,y2:8, x3:24,y3:18}, {x0:24,y0:18, x1:24,y1:32, x2:6,y2:38, x3:0,y3:30}],
+  [{x0:3,y0:0, x1:8,y1:3, x2:24,y2:8, x3:24,y3:18}, {x0:24,y0:18, x1:24,y1:32, x2:6,y2:38, x3:0,y3:30}],
   // 15: Pointed lobes — lobes come to subtle peak
-  [{x0:0,y0:0, x1:3,y1:5, x2:18,y2:8, x3:18,y3:26}, {x0:18,y0:26, x1:18,y1:36, x2:0,y2:40, x3:0,y3:32}],
-  // 16: Double S — S-curve sides
-  [{x0:0,y0:0, x1:3,y1:5, x2:12,y2:6, x3:18,y3:18}, {x0:18,y0:18, x1:22,y1:26, x2:22,y2:36, x3:0,y3:34}],
+  [{x0:3,y0:0, x1:6,y1:4, x2:18,y2:8, x3:18,y3:26}, {x0:18,y0:26, x1:18,y1:36, x2:0,y2:40, x3:0,y3:32}],
+  // 16: S-curve sides
+  [{x0:3,y0:0, x1:6,y1:4, x2:12,y2:6, x3:18,y3:18}, {x0:18,y0:18, x1:22,y1:26, x2:22,y2:36, x3:0,y3:34}],
   // 17: Full round — near-circular lobes
-  [{x0:0,y0:0, x1:4,y1:5, x2:22,y2:18, x3:22,y3:24}, {x0:22,y0:24, x1:22,y1:32, x2:14,y2:40, x3:0,y3:34}],
+  [{x0:3,y0:0, x1:7,y1:4, x2:22,y2:18, x3:22,y3:24}, {x0:22,y0:24, x1:22,y1:32, x2:14,y2:40, x3:0,y3:34}],
   // 18: Narrow deep — slender with deep cleft
-  [{x0:0,y0:0, x1:2,y1:5, x2:16,y2:10, x3:16,y3:26}, {x0:16,y0:26, x1:16,y1:40, x2:5,y2:34, x3:0,y3:24}],
+  [{x0:3,y0:0, x1:5,y1:4, x2:16,y2:10, x3:16,y3:26}, {x0:16,y0:26, x1:16,y1:40, x2:5,y2:34, x3:0,y3:24}],
   // 19: Gentle curves — very smooth transitions
-  [{x0:0,y0:0, x1:4,y1:5, x2:18,y2:14, x3:18,y3:24}, {x0:18,y0:24, x1:18,y1:34, x2:8,y2:38, x3:0,y3:32}],
+  [{x0:3,y0:0, x1:7,y1:4, x2:18,y2:14, x3:18,y3:24}, {x0:18,y0:24, x1:18,y1:34, x2:8,y2:38, x3:0,y3:32}],
   // 20: Bold chunky — big and prominent
-  [{x0:0,y0:0, x1:5,y1:5, x2:24,y2:14, x3:24,y3:26}, {x0:24,y0:26, x1:24,y1:40, x2:6,y2:42, x3:0,y3:34}],
+  [{x0:3,y0:0, x1:8,y1:4, x2:24,y2:14, x3:24,y3:26}, {x0:24,y0:26, x1:24,y1:40, x2:6,y2:42, x3:0,y3:34}],
 ];
 
 function buildHeartShape(font, fontSize, style = 1) {
