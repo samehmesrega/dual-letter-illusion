@@ -48,6 +48,20 @@ export function createInputPanel(container, callbacks) {
     <div class="panel-actions">
       <button id="btn-wireframe" class="btn-secondary">Wireframe: OFF</button>
     </div>
+
+    <div class="batch-separator"></div>
+
+    <div class="panel-section">
+      <label for="sheet-url">Google Sheet URL</label>
+      <input type="url" id="sheet-url" placeholder="Paste Google Sheets link" autocomplete="off" />
+    </div>
+    <div class="panel-actions">
+      <button id="btn-batch" class="btn-primary">Generate from Sheet</button>
+    </div>
+    <div id="batch-progress" class="batch-progress hidden">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <span id="batch-status" class="batch-status"></span>
+    </div>
   `;
 
   // Populate font dropdown
@@ -114,6 +128,11 @@ export function createInputPanel(container, callbacks) {
   });
 
   const btnWireframe = container.querySelector('#btn-wireframe');
+  const sheetUrlInput = container.querySelector('#sheet-url');
+  const btnBatch = container.querySelector('#btn-batch');
+  const batchProgress = container.querySelector('#batch-progress');
+  const progressFill = container.querySelector('#progress-fill');
+  const batchStatus = container.querySelector('#batch-status');
   let wireframeOn = false;
 
   btnGenerate.addEventListener('click', () => callbacks.onGenerate());
@@ -122,6 +141,9 @@ export function createInputPanel(container, callbacks) {
     wireframeOn = !wireframeOn;
     btnWireframe.textContent = wireframeOn ? 'Wireframe: ON' : 'Wireframe: OFF';
     if (callbacks.onWireframeToggle) callbacks.onWireframeToggle(wireframeOn);
+  });
+  btnBatch.addEventListener('click', () => {
+    if (callbacks.onBatchGenerate) callbacks.onBatchGenerate(sheetUrlInput.value.trim());
   });
 
   return {
@@ -142,6 +164,16 @@ export function createInputPanel(container, callbacks) {
     },
     enableDownload(enabled) {
       btnDownload.disabled = !enabled;
+    },
+    setBatchProgress(current, total, status) {
+      batchProgress.classList.remove('hidden');
+      progressFill.style.width = total > 0 ? `${(current / total) * 100}%` : '0%';
+      batchStatus.textContent = status;
+    },
+    setBatchLoading(on) {
+      btnBatch.disabled = on;
+      btnBatch.textContent = on ? 'Processing...' : 'Generate from Sheet';
+      if (!on) batchProgress.classList.add('hidden');
     }
   };
 }

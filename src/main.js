@@ -4,6 +4,7 @@ import { createInputPanel } from './ui/InputPanel.js';
 import { createPreviewPanel } from './ui/PreviewPanel.js';
 import { buildAmbigram, debugLog } from './engine/AmbigramBuilder.js';
 import { exportToSTL } from './engine/STLExporter.js';
+import { processBatch } from './engine/BatchProcessor.js';
 import { DEFAULT_FONT, INSCRIPTION_FONT } from './fonts/curated-fonts.js';
 
 // App state
@@ -23,7 +24,8 @@ const inputPanel = createInputPanel(document.getElementById('input-panel'), {
   onChange: handleInputChange,
   onGenerate: handleGenerate,
   onDownload: handleDownload,
-  onWireframeToggle: handleWireframeToggle
+  onWireframeToggle: handleWireframeToggle,
+  onBatchGenerate: handleBatchGenerate
 });
 
 const previewPanel = createPreviewPanel(document.getElementById('preview-panel'));
@@ -78,6 +80,33 @@ function handleDownload() {
   if (!state.currentModel) return;
   const filename = `DualLetter_${state.textA}_${state.textB}.stl`;
   exportToSTL(state.currentModel, filename);
+}
+
+async function handleBatchGenerate(sheetUrl) {
+  if (!sheetUrl) {
+    previewPanel.showError('Please paste a Google Sheets URL.');
+    return;
+  }
+
+  inputPanel.setBatchLoading(true);
+  previewPanel.clearError();
+
+  try {
+    await processBatch(sheetUrl, {
+      fontUrl:            `/fonts/${state.fontFile}`,
+      fontSize:           state.fontSize,
+      cornerRadius:       state.cornerRadius,
+      baseThickness:      state.baseThickness,
+      inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`
+    }, (current, total, status) => {
+      inputPanel.setBatchProgress(current, total, status);
+    });
+  } catch (err) {
+    console.error('Batch failed:', err);
+    previewPanel.showError(err.message || 'Batch generation failed.');
+  }
+
+  inputPanel.setBatchLoading(false);
 }
 
 function handleWireframeToggle(on) {
