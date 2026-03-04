@@ -45,6 +45,7 @@ dual-letter-illusion/
     │   ├── GlyphToJSCAD.js  ← CORE: glyph → JSCAD geom2
     │   ├── JscadToThree.js  ← CORE: JSCAD geom3 → Three.js BufferGeometry
     │   ├── AmbigramBuilder.js ← ORCHESTRATOR
+    │   ├── BatchProcessor.js ← Google Sheets batch → ZIP
     │   ├── SceneManager.js
     │   └── STLExporter.js
     ├── ui/
@@ -113,9 +114,16 @@ clearCache(): void
 glyphToJSCAD(font, char, fontSize=72):
   { shape: geom2, bounds: {minX,maxX,minY,maxY,width,height} } | null
 // Main export. Converts one character to JSCAD 2D geometry.
+// Heart chars (♥ U+2665, ❤ U+2764) → programmatic bezier heart shape
+// Heart style controlled via glyphToJSCAD._heartStyle (1–20)
+
+glyphToJSCAD._heartStyle: number  // static property, set by AmbigramBuilder
 
 getGlyphDebugLog(): string[]
 // Returns debug messages from last glyphToJSCAD call
+
+HEART_VARIANTS: array  // 20 bezier-curve heart shapes (internal)
+buildHeartShape(fontSize, style=1): { shape, bounds }  // internal
 ```
 
 **Internal logic:**
@@ -164,6 +172,7 @@ options = {
   baseHeight: 2,           // base plate height (1–5 mm)
   basePadding: 10,         // base plate padding around letters
   cornerRadius: 5,         // fillet radius (5–50 mm)
+  heartStyle: 1,           // heart shape variant (1–20)
   inscriptionText: '',     // optional text engraved on base in front of letters
   inscriptionFontUrl: ''   // hardcoded to /fonts/IBMPlexSansArabic-Bold.ttf
 }
@@ -231,17 +240,18 @@ exportToSTLBlob(group: THREE.Group): Blob
 ### `src/ui/InputPanel.js`
 
 ```js
-createInputPanel(container, callbacks): { getState(), setLoading(bool), enableDownload(bool) }
+createInputPanel(container, callbacks): { getState(), setLoading(bool), enableDownload(bool), setBatchProgress(), setBatchLoading() }
 
 callbacks = {
   onChange(state),          // fired on any input change
   onGenerate(),             // Generate button
   onDownload(),             // Download STL button
-  onWireframeToggle(bool)   // Wireframe toggle button
+  onWireframeToggle(bool),  // Wireframe toggle button
+  onBatchGenerate(url)      // Generate from Sheet button
 }
 ```
 
-**UI elements:** text-a, text-b (maxlength=15), font-select, font-size slider (36–144, default 72), corner-radius slider (5–50), base-thickness slider (1–5), inscription-text input (maxlength=60), Generate button, Download STL button, Wireframe button
+**UI elements:** text-a, text-b (maxlength=15), font-select, font-size slider (36–144, default 72), corner-radius slider (5–50), base-thickness slider (1–5), heart-style dropdown (1–20), inscription-text input (maxlength=60), Generate button, Download STL button, Wireframe button, Google Sheet URL input, Generate from Sheet button, batch progress bar
 
 ---
 
@@ -459,3 +469,9 @@ DEFAULT = Roboto Bold (OverpassMono has CFF glyph issues — avoid as default)
 | Session 6 | Simplified inscription font: removed dropdown, hardcoded IBM Plex Arabic as only inscription font |
 | Session 6 | Cleaned up fonts: removed 50 unused TTF files, keeping only 7 (6 letter fonts + IBM Plex Arabic) |
 | Session 6 | Replaced `ARABIC_FONTS` array with single `INSCRIPTION_FONT` constant |
+| Session 6 | Deployed to GitHub + Render (live at https://dna-si1n.onrender.com/) |
+| Session 6 | Changed header to "Dual Name" with "pickedin.net \| Printin.org" branding |
+| Session 6 | Added Google Sheets batch generation: fetch CSV, generate STLs, download as ZIP (BatchProcessor.js + JSZip) |
+| Session 6 | Renamed labels: Side A→Name 1, Side B→Name 2, Inscription→Text on base |
+| Session 6 | Shorter name padded with ♥ (U+2665) heart symbol instead of spaces |
+| Session 6 | Programmatic heart shape generator: 20 bezier-curve variants in GlyphToJSCAD.js with dropdown selector (Heart 1–20) |

@@ -106,6 +106,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
         fontSize:           options.fontSize,
         cornerRadius:       options.cornerRadius,
         baseHeight:         options.baseThickness,
+        heartStyle:         options.heartStyle || 1,
         inscriptionText:    inscription || '',
         inscriptionFontUrl: options.inscriptionFontUrl
       });

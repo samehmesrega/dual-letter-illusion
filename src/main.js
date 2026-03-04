@@ -15,6 +15,7 @@ const state = {
   fontSize:      72,
   cornerRadius:  5,
   baseThickness: 2,
+  heartStyle:    1,
   inscriptionText: '',
   currentModel:  null
 };
@@ -60,6 +61,7 @@ async function handleGenerate() {
       fontSize:     state.fontSize,
       cornerRadius: state.cornerRadius,
       baseHeight:   state.baseThickness,
+      heartStyle:   state.heartStyle,
       inscriptionText: state.inscriptionText,
       inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`
     });
@@ -97,6 +99,7 @@ async function handleBatchGenerate(sheetUrl) {
       fontSize:           state.fontSize,
       cornerRadius:       state.cornerRadius,
       baseThickness:      state.baseThickness,
+      heartStyle:         state.heartStyle,
       inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`
     }, (current, total, status) => {
       inputPanel.setBatchProgress(current, total, status);

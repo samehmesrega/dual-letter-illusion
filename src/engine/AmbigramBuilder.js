@@ -34,6 +34,7 @@ export async function buildAmbigram(options) {
     baseHeight      = 2,
     basePadding     = 10,
     cornerRadius    = 0,
+    heartStyle      = 1,
     inscriptionText = '',
     inscriptionFontUrl = null
   } = options;
@@ -42,6 +43,9 @@ export async function buildAmbigram(options) {
   dbg(`=== BUILD START: "${textA}" + "${textB}" | font: ${fontUrl} | size: ${fontSize} ===`);
 
   const font = await loadFont(fontUrl);
+
+  // Set heart style for glyph builder
+  glyphToJSCAD._heartStyle = heartStyle;
 
   const maxLen = Math.max(textA.length, textB.length);
   const a = textA.toUpperCase().padEnd(maxLen, '\u2665');

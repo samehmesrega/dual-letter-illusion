@@ -21,7 +21,7 @@ export function glyphToJSCAD(font, char, fontSize = 72) {
 
   // Heart symbol — generate programmatically (works with all fonts)
   if (char === '\u2665' || char === '\u2764') {
-    return buildHeartShape(fontSize);
+    return buildHeartShape(fontSize, glyphToJSCAD._heartStyle || 1);
   }
 
   const glyphPath = font.getPath(char, 0, 0, fontSize);
@@ -261,23 +261,58 @@ function quadBezier(t, x0, y0, x1, y1, x2, y2) {
   ];
 }
 
-// ── Heart shape builder ──────────────────────────────────────────────────────
+// ── Heart shape builder (20 variants) ────────────────────────────────────────
 
-function buildHeartShape(fontSize) {
-  // Rounded heart with flat bottom for solid base connection.
-  // Built from two cubic bezier halves (right side mirrored to left).
-  const s = fontSize / 72; // scale factor
-  const seg = 16; // segments per bezier
+// Each variant = array of right-half bezier curves [{x0,y0,x1,y1,x2,y2,x3,y3}, ...]
+// Mirrored on X for left half. All start at bottom-center (0,0).
+const HEART_VARIANTS = [
+  // 1: Classic wide — large lobes, flat bottom
+  [{ x0:0,y0:0, x1:10,y1:0, x2:20,y2:10, x3:20,y3:22 }, { x0:20,y0:22, x1:20,y1:36, x2:4,y2:36, x3:0,y3:24 }],
+  // 2: Tall narrow — elongated
+  [{ x0:0,y0:0, x1:6,y1:0, x2:14,y2:8, x3:14,y3:20 }, { x0:14,y0:20, x1:14,y1:36, x2:3,y2:38, x3:0,y3:26 }],
+  // 3: Chubby round — very wide lobes
+  [{ x0:0,y0:0, x1:12,y1:0, x2:24,y2:8, x3:24,y3:18 }, { x0:24,y0:18, x1:24,y1:32, x2:6,y2:34, x3:0,y3:22 }],
+  // 4: Compact — small proportional
+  [{ x0:0,y0:0, x1:8,y1:0, x2:16,y2:6, x3:16,y3:14 }, { x0:16,y0:14, x1:16,y1:26, x2:4,y2:28, x3:0,y3:18 }],
+  // 5: Angular — sharper transitions
+  [{ x0:0,y0:0, x1:4,y1:0, x2:18,y2:2, x3:18,y3:18 }, { x0:18,y0:18, x1:18,y1:34, x2:2,y2:34, x3:0,y3:22 }],
+  // 6: Soft — very round smooth curves
+  [{ x0:0,y0:0, x1:14,y1:0, x2:22,y2:12, x3:22,y3:20 }, { x0:22,y0:20, x1:22,y1:30, x2:8,y2:34, x3:0,y3:24 }],
+  // 7: Flat wide — low profile, wide
+  [{ x0:0,y0:0, x1:12,y1:0, x2:24,y2:6, x3:24,y3:14 }, { x0:24,y0:14, x1:24,y1:24, x2:6,y2:26, x3:0,y3:18 }],
+  // 8: Tall slim — narrow and tall
+  [{ x0:0,y0:0, x1:5,y1:0, x2:12,y2:10, x3:12,y3:24 }, { x0:12,y0:24, x1:12,y1:40, x2:3,y2:42, x3:0,y3:30 }],
+  // 9: Deep cleft — pronounced top dip
+  [{ x0:0,y0:0, x1:10,y1:0, x2:20,y2:10, x3:20,y3:24 }, { x0:20,y0:24, x1:20,y1:38, x2:6,y2:32, x3:0,y3:18 }],
+  // 10: Shallow cleft — minimal top dip
+  [{ x0:0,y0:0, x1:10,y1:0, x2:20,y2:10, x3:20,y3:20 }, { x0:20,y0:20, x1:20,y1:32, x2:4,y2:36, x3:0,y3:28 }],
+  // 11: Asymmetric feel — wider bottom curve
+  [{ x0:0,y0:0, x1:16,y1:0, x2:20,y2:8, x3:20,y3:18 }, { x0:20,y0:18, x1:20,y1:32, x2:4,y2:34, x3:0,y3:24 }],
+  // 12: Balloon — very round, almost circular lobes
+  [{ x0:0,y0:0, x1:10,y1:0, x2:22,y2:14, x3:22,y3:22 }, { x0:22,y0:22, x1:22,y1:30, x2:12,y2:36, x3:0,y3:26 }],
+  // 13: Pointy top — sharp lobe peaks
+  [{ x0:0,y0:0, x1:8,y1:0, x2:18,y2:6, x3:18,y3:20 }, { x0:18,y0:20, x1:18,y1:30, x2:0,y2:34, x3:0,y3:22 }],
+  // 14: Squat — very wide, very short
+  [{ x0:0,y0:0, x1:14,y1:0, x2:26,y2:4, x3:26,y3:12 }, { x0:26,y0:12, x1:26,y1:22, x2:6,y2:24, x3:0,y3:16 }],
+  // 15: Elegant — gentle S-curves
+  [{ x0:0,y0:0, x1:6,y1:0, x2:18,y2:8, x3:18,y3:22 }, { x0:18,y0:22, x1:18,y1:34, x2:8,y2:36, x3:0,y3:26 }],
+  // 16: Bold — thick and full
+  [{ x0:0,y0:0, x1:12,y1:0, x2:22,y2:10, x3:22,y3:20 }, { x0:22,y0:20, x1:22,y1:34, x2:4,y2:36, x3:0,y3:22 }],
+  // 17: Pinched waist — narrow middle
+  [{ x0:0,y0:0, x1:6,y1:0, x2:20,y2:4, x3:20,y3:20 }, { x0:20,y0:20, x1:20,y1:36, x2:4,y2:36, x3:0,y3:24 }],
+  // 18: Wide base — extra flat bottom
+  [{ x0:0,y0:0, x1:16,y1:0, x2:22,y2:6, x3:22,y3:16 }, { x0:22,y0:16, x1:22,y1:30, x2:4,y2:34, x3:0,y3:24 }],
+  // 19: Teardrop heart — rounded lobes, narrow bottom
+  [{ x0:0,y0:0, x1:4,y1:0, x2:20,y2:12, x3:20,y3:22 }, { x0:20,y0:22, x1:20,y1:34, x2:6,y2:36, x3:0,y3:26 }],
+  // 20: Extra large — big and bold
+  [{ x0:0,y0:0, x1:14,y1:0, x2:26,y2:12, x3:26,y3:24 }, { x0:26,y0:24, x1:26,y1:40, x2:6,y2:42, x3:0,y3:28 }],
+];
 
-  // Right half bezier curves (bottom-center → right lobe top → top-center dip)
-  // Then mirrored for left half. Bottom is flat, not pointy.
-  const rightCurves = [
-    // Bottom flat segment → right side
-    { x0: 0, y0: 0, x1: 8, y1: 0, x2: 16, y2: 8, x3: 16, y3: 18 },
-    // Right lobe → top center
-    { x0: 16, y0: 18, x1: 16, y1: 30, x2: 4, y2: 32, x3: 0, y3: 22 },
-  ];
-
+function buildHeartShape(fontSize, style = 1) {
+  const idx = Math.max(0, Math.min(HEART_VARIANTS.length - 1, style - 1));
+  const rightCurves = HEART_VARIANTS[idx];
+  const s = fontSize / 72;
+  const seg = 16;
   const points = [];
 
   // Right half (bottom to top)
@@ -312,7 +347,6 @@ function buildHeartShape(fontSize) {
     }
   }
 
-  // Ensure CCW winding
   const area = computeSignedArea(cleaned);
   if (area < 0) cleaned.reverse();
 
@@ -325,7 +359,7 @@ function buildHeartShape(fontSize) {
   }
   const bounds = { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
 
-  dbg(`  heart shape: ${bounds.width.toFixed(1)} x ${bounds.height.toFixed(1)}`);
+  dbg(`  heart #${style}: ${bounds.width.toFixed(1)} x ${bounds.height.toFixed(1)}`);
   return { shape, bounds };
 }
 

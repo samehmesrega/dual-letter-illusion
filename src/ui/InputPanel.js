@@ -38,6 +38,31 @@ export function createInputPanel(container, callbacks) {
       <input type="range" id="base-thickness" min="1" max="5" value="2" step="0.5" />
     </div>
     <div class="panel-section">
+      <label for="heart-style">Heart Shape</label>
+      <select id="heart-style">
+        <option value="1">Heart 1</option>
+        <option value="2">Heart 2</option>
+        <option value="3">Heart 3</option>
+        <option value="4">Heart 4</option>
+        <option value="5">Heart 5</option>
+        <option value="6">Heart 6</option>
+        <option value="7">Heart 7</option>
+        <option value="8">Heart 8</option>
+        <option value="9">Heart 9</option>
+        <option value="10">Heart 10</option>
+        <option value="11">Heart 11</option>
+        <option value="12">Heart 12</option>
+        <option value="13">Heart 13</option>
+        <option value="14">Heart 14</option>
+        <option value="15">Heart 15</option>
+        <option value="16">Heart 16</option>
+        <option value="17">Heart 17</option>
+        <option value="18">Heart 18</option>
+        <option value="19">Heart 19</option>
+        <option value="20">Heart 20</option>
+      </select>
+    </div>
+    <div class="panel-section">
       <label for="inscription-text">Text on base</label>
       <input type="text" id="inscription-text" maxlength="60" placeholder="e.g. Made with love / بحبك" autocomplete="off" spellcheck="false" />
     </div>
@@ -83,6 +108,7 @@ export function createInputPanel(container, callbacks) {
   const thicknessInput  = container.querySelector('#base-thickness');
   const thicknessValue  = container.querySelector('#thickness-value');
   const inscriptionInput = container.querySelector('#inscription-text');
+  const heartStyleSelect = container.querySelector('#heart-style');
   const btnGenerate     = container.querySelector('#btn-generate');
   const btnDownload   = container.querySelector('#btn-download');
   const lengthWarning = container.querySelector('#length-warning');
@@ -106,6 +132,7 @@ export function createInputPanel(container, callbacks) {
       fontSize:       parseInt(sizeInput.value),
       cornerRadius:   parseFloat(radiusInput.value),
       baseThickness:  parseFloat(thicknessInput.value),
+      heartStyle:     parseInt(heartStyleSelect.value),
       inscriptionText: inscriptionInput.value.trim()
     });
   }
@@ -114,6 +141,7 @@ export function createInputPanel(container, callbacks) {
   textBInput.addEventListener('input', emitChange);
   inscriptionInput.addEventListener('input', emitChange);
   fontSelect.addEventListener('change', emitChange);
+  heartStyleSelect.addEventListener('change', emitChange);
   sizeInput.addEventListener('input', () => {
     sizeValue.textContent = sizeInput.value;
     emitChange();
@@ -155,6 +183,7 @@ export function createInputPanel(container, callbacks) {
         fontSize:     parseInt(sizeInput.value),
         cornerRadius:  parseFloat(radiusInput.value),
         baseThickness: parseFloat(thicknessInput.value),
+        heartStyle:    parseInt(heartStyleSelect.value),
         inscriptionText: inscriptionInput.value.trim()
       };
     },
