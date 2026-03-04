@@ -19,6 +19,11 @@ export function glyphToJSCAD(font, char, fontSize = 72) {
   glyphDebug.length = 0;
   dbg(`[GlyphToJSCAD] '${char}' size=${fontSize}`);
 
+  // Heart symbol — generate programmatically (works with all fonts)
+  if (char === '\u2665' || char === '\u2764') {
+    return buildHeartShape(fontSize);
+  }
+
   const glyphPath = font.getPath(char, 0, 0, fontSize);
   const contours = samplePath(glyphPath.commands);
 
@@ -254,6 +259,40 @@ function quadBezier(t, x0, y0, x1, y1, x2, y2) {
     u*u*x0 + 2*u*t*x1 + t*t*x2,
     u*u*y0 + 2*u*t*y1 + t*t*y2
   ];
+}
+
+// ── Heart shape builder ──────────────────────────────────────────────────────
+
+function buildHeartShape(fontSize) {
+  // Parametric heart curve: x = 16sin³(t), y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
+  // Scaled to match fontSize
+  const scale = fontSize / 36;
+  const numPoints = 64;
+  const points = [];
+
+  for (let i = 0; i < numPoints; i++) {
+    const t = (i / numPoints) * 2 * Math.PI;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+    points.push([x * scale, y * scale]);
+  }
+
+  // Ensure CCW winding
+  const area = computeSignedArea(points);
+  if (area < 0) points.reverse();
+
+  const shape = pointsToGeom2(points);
+
+  // Compute bounds
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of points) {
+    if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+    if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+  }
+  const bounds = { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+
+  dbg(`  heart shape: ${bounds.width.toFixed(1)} x ${bounds.height.toFixed(1)}`);
+  return { shape, bounds };
 }
 
 // ── Geometry helpers ──────────────────────────────────────────────────────────
