@@ -13,14 +13,14 @@ import { CURATED_FONTS } from '../fonts/curated-fonts.js';
 export function createInputPanel(container, callbacks) {
   container.innerHTML = `
     <div class="panel-section">
-      <label for="text-a">Side A</label>
+      <label for="text-a">Name 1</label>
       <input type="text" id="text-a" maxlength="15" placeholder="e.g. LOVE" autocomplete="off" spellcheck="false" />
     </div>
     <div class="panel-section">
-      <label for="text-b">Side B</label>
+      <label for="text-b">Name 2</label>
       <input type="text" id="text-b" maxlength="15" placeholder="e.g. HATE" autocomplete="off" spellcheck="false" />
     </div>
-    <div id="length-warning" class="warning hidden">Both texts should have the same length</div>
+    <div id="length-warning" class="warning hidden">Both names should have the same length</div>
     <div class="panel-section">
       <label for="font-select">Font</label>
       <select id="font-select"></select>
@@ -38,7 +38,7 @@ export function createInputPanel(container, callbacks) {
       <input type="range" id="base-thickness" min="1" max="5" value="2" step="0.5" />
     </div>
     <div class="panel-section">
-      <label for="inscription-text">Inscription (on base)</label>
+      <label for="inscription-text">Text on base</label>
       <input type="text" id="inscription-text" maxlength="60" placeholder="e.g. Made with love / بحبك" autocomplete="off" spellcheck="false" />
     </div>
     <div class="panel-actions">
