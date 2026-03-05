@@ -1,4 +1,5 @@
 import './styles/customer.css';
+import * as THREE from 'three';
 import { createCustomerPanel } from './ui/CustomerPanel.js';
 import { createScene, fitCameraToObject } from './engine/SceneManager.js';
 import { buildAmbigram } from './engine/AmbigramBuilder.js';
@@ -77,6 +78,22 @@ async function handleGenerate() {
     currentModel = model;
     ctx.scene.add(model);
     fitCameraToObject(ctx.camera, model, ctx.controls);
+
+    // Reposition camera to face Name 1 more directly (lower, more frontal)
+    const bbox = new THREE.Box3().setFromObject(model);
+    const center = bbox.getCenter(new THREE.Vector3());
+    const size = bbox.getSize(new THREE.Vector3());
+    const baseDim = Math.max(size.x, size.z, size.y * 0.5);
+    const fov = ctx.camera.fov * (Math.PI / 180);
+    const dist = (baseDim / 2) / Math.tan(fov / 2) * 1.5;
+    ctx.camera.position.set(
+      center.x - dist * 0.85,  // -X: face Name 1 side
+      center.y + dist * 0.25,  // low angle — read the letters
+      center.z + dist * 0.5
+    );
+    ctx.camera.lookAt(center);
+    ctx.controls.target.copy(center);
+    ctx.controls.update();
 
     // Capture screenshot synchronously after render
     ctx.renderer.render(ctx.scene, ctx.camera);
