@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test — Shopify Integration (3-Step Wizard)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #fafafa;
+      color: #1e293b;
+    }
+    .test-banner {
+      background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px;
+      padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: #92400e;
+    }
+    .test-log {
+      background: #1e293b; color: #a5f3fc; border-radius: 8px; padding: 16px;
+      margin-top: 24px; font-family: monospace; font-size: 12px;
+      max-height: 200px; overflow-y: auto;
+    }
+    .test-log .log-entry { margin-bottom: 4px; }
+    .test-log .log-type { color: #fbbf24; }
+
+    /* === Snippet CSS === */
+    #dual-name-customizer {
+      max-width: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    #dual-name-customizer .dn-hidden { display: none !important; }
+    #dual-name-customizer #dn-iframe {
+      width: 100%; height: 520px; border: none; border-radius: 12px; background: #f0f4f8;
+    }
+    #dual-name-customizer .dn-step { margin-bottom: 20px; }
+    #dual-name-customizer .dn-step-title {
+      font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 16px;
+      padding-bottom: 8px; border-bottom: 2px solid #4361ee;
+    }
+    #dual-name-customizer .dn-color-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    #dual-name-customizer .dn-swatch-wrap { display: flex; flex-direction: column; align-items: center; }
+    #dual-name-customizer .dn-swatch {
+      width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    #dual-name-customizer .dn-swatch:hover { transform: scale(1.1); }
+    #dual-name-customizer .dn-swatch.dn-selected {
+      border-color: #4361ee; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #4361ee;
+    }
+    #dual-name-customizer .dn-swatch-label {
+      display: block; text-align: center; font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;
+    }
+    #dual-name-customizer .dn-packing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;
+    }
+    #dual-name-customizer .dn-packing-card {
+      border: 2px solid #e2e8f0; border-radius: 12px; background: #fff;
+      cursor: pointer; transition: all 0.2s ease; overflow: hidden; text-align: center;
+    }
+    #dual-name-customizer .dn-packing-card:hover {
+      border-color: #4361ee; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.12);
+    }
+    #dual-name-customizer .dn-packing-card.dn-selected {
+      border-color: #4361ee; box-shadow: 0 0 0 2px #4361ee;
+    }
+    #dual-name-customizer .dn-packing-card img {
+      width: 100%; height: 140px; object-fit: cover; display: block;
+    }
+    #dual-name-customizer .dn-packing-card .dn-packing-placeholder {
+      width: 100%; height: 140px; background: #f1f5f9; display: flex;
+      align-items: center; justify-content: center; color: #94a3b8; font-size: 32px;
+    }
+    #dual-name-customizer .dn-packing-card .dn-packing-info { padding: 12px; }
+    #dual-name-customizer .dn-packing-card .dn-packing-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+    #dual-name-customizer .dn-packing-card .dn-packing-price { font-size: 12px; color: #64748b; margin-top: 4px; }
+    #dual-name-customizer .dn-btn-next,
+    #dual-name-customizer .dn-btn-cart {
+      width: 100%; padding: 14px; background: #4361ee; color: #fff; border: none;
+      border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    #dual-name-customizer .dn-btn-next:hover,
+    #dual-name-customizer .dn-btn-cart:hover { background: #3a56d4; }
+    #dual-name-customizer .dn-btn-next:disabled,
+    #dual-name-customizer .dn-btn-cart:disabled { opacity: 0.6; cursor: not-allowed; }
+    #dual-name-customizer .dn-btn-back {
+      width: 100%; padding: 10px; background: none; color: #64748b; border: 1px solid #e2e8f0;
+      border-radius: 8px; font-size: 13px; cursor: pointer; margin-top: 8px;
+      transition: all 0.2s ease;
+    }
+    #dual-name-customizer .dn-btn-back:hover { color: #1e293b; border-color: #cbd5e1; }
+    #dual-name-customizer .dn-price-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 0; border-top: 1px solid #e2e8f0; margin-top: 8px;
+    }
+    #dual-name-customizer .dn-price-label { font-size: 16px; font-weight: 500; color: #64748b; }
+    #dual-name-customizer .dn-price { font-size: 24px; font-weight: 700; color: #1e293b; }
+    #dual-name-customizer .dn-unavailable { color: #ef4444; font-size: 13px; margin-bottom: 8px; display: none; }
+    #dual-name-customizer .dn-unavailable.active { display: block; }
+    @media (max-width: 480px) {
+      #dual-name-customizer #dn-iframe { height: 420px; }
+      #dual-name-customizer .dn-swatch { width: 36px; height: 36px; }
+      #dual-name-customizer .dn-packing-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="test-banner">
+    <strong>Test page</strong> — simulates Shopify product page with 3-step wizard.
+    Packing images show placeholders (replace with real images on Shopify).
+  </div>
+
+  <div id="dual-name-customizer">
+    <div class="dn-step" id="dn-step-preview">
+      <iframe id="dn-iframe" src="" allow="autoplay" loading="lazy"></iframe>
+    </div>
+    <div class="dn-step dn-hidden" id="dn-step-color">
+      <h3 class="dn-step-title">Step 1 — Choose Your Color</h3>
+      <div id="dn-colors" class="dn-color-grid"></div>
+      <button id="dn-next-packing" class="dn-btn-next">Continue to Packing</button>
+    </div>
+    <div class="dn-step dn-hidden" id="dn-step-packing">
+      <h3 class="dn-step-title">Step 2 — Choose Your Packing</h3>
+      <div id="dn-packing" class="dn-packing-grid"></div>
+      <div class="dn-price-row">
+        <span class="dn-price-label">Total</span>
+        <span id="dn-price" class="dn-price"></span>
+      </div>
+      <div id="dn-unavailable" class="dn-unavailable">This combination is currently unavailable</div>
+      <button id="dn-add-to-cart" class="dn-btn-cart">Add to Cart</button>
+      <button id="dn-back-color" class="dn-btn-back">← Back to Color</button>
+    </div>
+  </div>
+
+  <div class="test-log" id="test-log">
+    <div class="log-entry"><span class="log-type">[INIT]</span> 3-step wizard test loaded</div>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    function log(type, msg) {
+      var el = document.getElementById('test-log');
+      var entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = '<span class="log-type">[' + type + ']</span> ' + msg;
+      el.appendChild(entry);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // Fake Shopify product data
+    var testColors = ['Black', 'White', 'Blue', 'Pink', 'Yellow', 'Orange', 'Purple', 'Red', 'Silver', 'Green'];
+    var testPacking = ['Cartoon Box', 'Wooden Box', 'Acrylic Box'];
+    var basePrices = { 'Cartoon Box': 5500, 'Wooden Box': 7000, 'Acrylic Box': 8500 };
+    var packingEmoji = { 'Cartoon Box': '📦', 'Wooden Box': '🪵', 'Acrylic Box': '💎' };
+
+    var productData = { title: 'Dual Name Illusion', variants: [] };
+    var fakeId = 100001;
+    testColors.forEach(function(color) {
+      testPacking.forEach(function(pack) {
+        productData.variants.push({
+          id: fakeId++, option1: color, option2: pack,
+          title: color + ' / ' + pack,
+          price: basePrices[pack] + (color === 'Silver' ? 500 : 0),
+          available: true
+        });
+      });
+    });
+
+    log('DATA', productData.variants.length + ' variants loaded');
+
+    // Config
+    var CONFIG = {
+      embedUrl: '/customer.html',
+      colorHex: {
+        'Black': '#1a1a1a', 'White': '#f5f5f5', 'Blue': '#2563EB', 'Pink': '#EC4899',
+        'Yellow': '#EAB308', 'Orange': '#F97316', 'Purple': '#9333EA',
+        'Red': '#EF4444', 'Silver': '#9CA3AF', 'Green': '#22C55E'
+      },
+      packingImages: {
+        'Cartoon Box':  '/images/packing/cartoon-box.jpg',
+        'Wooden Box':   '/images/packing/wooden-box.jpg',
+        'Acrylic Box':  '/images/packing/acrylic-box.jpg'
+      }
+    };
+
+    // Parse variants
+    var variants = productData.variants;
+    var colorsSet = {}, packingSet = {}, variantMap = {};
+    variants.forEach(function(v) {
+      if (v.option1) colorsSet[v.option1] = true;
+      if (v.option2) packingSet[v.option2] = true;
+      variantMap[(v.option1 || '') + ' / ' + (v.option2 || '')] = v;
+    });
+    var colors = Object.keys(colorsSet);
+    var packingOptions = Object.keys(packingSet);
+
+    var state = {
+      name1: '', name2: '', screenshot: '',
+      selectedColor: colors[0],
+      selectedPacking: packingOptions[0]
+    };
+
+    function getSelectedVariant() {
+      return variantMap[state.selectedColor + ' / ' + state.selectedPacking] || null;
+    }
+    function formatPrice(cents) { return '$' + (cents / 100).toFixed(2); }
+
+    function updatePrice() {
+      var variant = getSelectedVariant();
+      var priceEl = document.getElementById('dn-price');
+      var unavailableEl = document.getElementById('dn-unavailable');
+      var cartBtn = document.getElementById('dn-add-to-cart');
+      if (variant && variant.available) {
+        priceEl.textContent = formatPrice(variant.price);
+        unavailableEl.classList.remove('active');
+        cartBtn.disabled = false;
+      } else {
+        priceEl.textContent = '--';
+        unavailableEl.classList.add('active');
+        cartBtn.disabled = true;
+      }
+      log('PRICE', state.selectedColor + ' / ' + state.selectedPacking +
+        (variant ? ' → ' + formatPrice(variant.price) : ' → N/A'));
+    }
+
+    // Init iframe
+    document.getElementById('dn-iframe').src = CONFIG.embedUrl;
+
+    // Colors
+    var colorsEl = document.getElementById('dn-colors');
+    colors.forEach(function(colorName) {
+      var wrap = document.createElement('div');
+      wrap.className = 'dn-swatch-wrap';
+      var swatch = document.createElement('div');
+      swatch.className = 'dn-swatch' + (colorName === state.selectedColor ? ' dn-selected' : '');
+      swatch.style.backgroundColor = CONFIG.colorHex[colorName] || '#ccc';
+      if (colorName.toLowerCase() === 'white') swatch.style.border = '2px solid #e2e8f0';
+      swatch.addEventListener('click', function() {
+        state.selectedColor = colorName;
+        colorsEl.querySelectorAll('.dn-swatch').forEach(function(s) { s.classList.remove('dn-selected'); });
+        swatch.classList.add('dn-selected');
+        log('COLOR', 'Selected: ' + colorName);
+      });
+      var label = document.createElement('span');
+      label.className = 'dn-swatch-label';
+      label.textContent = colorName;
+      wrap.appendChild(swatch);
+      wrap.appendChild(label);
+      colorsEl.appendChild(wrap);
+    });
+
+    // Packing cards
+    var packingEl = document.getElementById('dn-packing');
+    packingOptions.forEach(function(packName) {
+      var card = document.createElement('div');
+      card.className = 'dn-packing-card' + (packName === state.selectedPacking ? ' dn-selected' : '');
+
+      var imgUrl = CONFIG.packingImages[packName] || '';
+      if (imgUrl) {
+        var img = document.createElement('img');
+        img.src = imgUrl;
+        img.alt = packName;
+        img.loading = 'lazy';
+        card.appendChild(img);
+      } else {
+        var ph = document.createElement('div');
+        ph.className = 'dn-packing-placeholder';
+        ph.textContent = packingEmoji[packName] || '📦';
+        card.appendChild(ph);
+      }
+
+      var info = document.createElement('div');
+      info.className = 'dn-packing-info';
+      var name = document.createElement('div');
+      name.className = 'dn-packing-name';
+      name.textContent = packName;
+      info.appendChild(name);
+
+      var cheapest = null;
+      variants.forEach(function(v) {
+        if (v.option2 === packName && v.available && (!cheapest || v.price < cheapest)) cheapest = v.price;
+      });
+      if (cheapest !== null) {
+        var priceTag = document.createElement('div');
+        priceTag.className = 'dn-packing-price';
+        priceTag.textContent = 'From ' + formatPrice(cheapest);
+        info.appendChild(priceTag);
+      }
+      card.appendChild(info);
+
+      card.addEventListener('click', function() {
+        state.selectedPacking = packName;
+        packingEl.querySelectorAll('.dn-packing-card').forEach(function(c) { c.classList.remove('dn-selected'); });
+        card.classList.add('dn-selected');
+        updatePrice();
+        log('PACK', 'Selected: ' + packName);
+      });
+      packingEl.appendChild(card);
+    });
+
+    updatePrice();
+
+    // Step navigation
+    window.addEventListener('message', function(event) {
+      var data = event.data;
+      if (!data || data.source !== 'dual-name') return;
+      log('MSG', data.type);
+      if (data.type === 'preview-ready') {
+        state.name1 = data.name1;
+        state.name2 = data.name2;
+        state.screenshot = data.screenshot;
+        log('MSG', '"' + data.name1 + '" + "' + data.name2 + '" | screenshot: ' +
+          (data.screenshot ? (data.screenshot.length / 1024).toFixed(0) + 'KB' : 'none'));
+        document.getElementById('dn-step-color').classList.remove('dn-hidden');
+        document.getElementById('dn-step-color').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+
+    document.getElementById('dn-next-packing').addEventListener('click', function() {
+      document.getElementById('dn-step-color').classList.add('dn-hidden');
+      document.getElementById('dn-step-packing').classList.remove('dn-hidden');
+      updatePrice();
+      document.getElementById('dn-step-packing').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      log('NAV', 'Color → Packing');
+    });
+
+    document.getElementById('dn-back-color').addEventListener('click', function() {
+      document.getElementById('dn-step-packing').classList.add('dn-hidden');
+      document.getElementById('dn-step-color').classList.remove('dn-hidden');
+      document.getElementById('dn-step-color').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      log('NAV', 'Packing → Color (back)');
+    });
+
+    // Add to Cart (test mode)
+    document.getElementById('dn-add-to-cart').addEventListener('click', function() {
+      var btn = this;
+      var variant = getSelectedVariant();
+      if (!variant) { alert('Variant not found.'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Adding...';
+
+      log('CART', 'Variant #' + variant.id + ' (' + variant.title + ') at ' + formatPrice(variant.price));
+      log('CART', 'Names: "' + state.name1 + '" + "' + state.name2 + '"');
+
+      setTimeout(function() {
+        btn.textContent = 'Added to Cart!';
+        btn.style.background = '#10b981';
+        log('CART', 'Success! Would redirect to /cart');
+        setTimeout(function() {
+          btn.disabled = false;
+          btn.textContent = 'Add to Cart';
+          btn.style.background = '';
+        }, 2000);
+      }, 500);
+    });
+
+  })();
+  </script>
+</body>
+</html>

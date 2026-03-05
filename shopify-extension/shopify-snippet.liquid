@@ -1,0 +1,416 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     Dual Name 3D Customizer — Shopify Product Page Snippet
+     3-Step Wizard: Preview → Color → Packing → Add to Cart
+
+     HOW TO USE:
+     1. In Shopify Admin → Online Store → Themes → Customize
+     2. On your product page template, add a "Custom Liquid" block
+     3. Paste this entire file into the Custom Liquid block
+     4. Set EMBED_URL below to your deployed customer.html URL
+     5. Upload packing images to Shopify Files and update the URLs below
+
+     VARIANT MATCHING:
+     Variants must be "Color / Packing" combos, e.g. "Black / Cartoon Box"
+     ═══════════════════════════════════════════════════════════════ -->
+
+<div id="dual-name-customizer">
+
+  <!-- Step 1: 3D Preview -->
+  <div class="dn-step" id="dn-step-preview">
+    <iframe id="dn-iframe" src="" allow="autoplay" loading="lazy"></iframe>
+  </div>
+
+  <!-- Step 2: Color (hidden until preview ready) -->
+  <div class="dn-step dn-hidden" id="dn-step-color">
+    <h3 class="dn-step-title">Step 1 — Choose Your Color</h3>
+    <div id="dn-colors" class="dn-color-grid"></div>
+    <button id="dn-next-packing" class="dn-btn-next">Continue to Packing</button>
+  </div>
+
+  <!-- Step 3: Packing + Price + Cart (hidden until color chosen) -->
+  <div class="dn-step dn-hidden" id="dn-step-packing">
+    <h3 class="dn-step-title">Step 2 — Choose Your Packing</h3>
+    <div id="dn-packing" class="dn-packing-grid"></div>
+
+    <div class="dn-price-row">
+      <span class="dn-price-label">Total</span>
+      <span id="dn-price" class="dn-price"></span>
+    </div>
+
+    <div id="dn-unavailable" class="dn-unavailable">This combination is currently unavailable</div>
+    <button id="dn-add-to-cart" class="dn-btn-cart">Add to Cart</button>
+    <button id="dn-back-color" class="dn-btn-back">← Back to Color</button>
+  </div>
+
+</div>
+
+<style>
+  #dual-name-customizer {
+    max-width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  #dual-name-customizer .dn-hidden { display: none !important; }
+
+  /* Iframe */
+  #dual-name-customizer #dn-iframe {
+    width: 100%; height: 520px; border: none; border-radius: 12px; background: #f0f4f8;
+  }
+
+  /* Steps */
+  #dual-name-customizer .dn-step { margin-bottom: 20px; }
+  #dual-name-customizer .dn-step-title {
+    font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 2px solid #4361ee;
+  }
+
+  /* Color swatches */
+  #dual-name-customizer .dn-color-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  #dual-name-customizer .dn-swatch-wrap { display: flex; flex-direction: column; align-items: center; }
+  #dual-name-customizer .dn-swatch {
+    width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent;
+    cursor: pointer; transition: all 0.2s ease;
+  }
+  #dual-name-customizer .dn-swatch:hover { transform: scale(1.1); }
+  #dual-name-customizer .dn-swatch.dn-selected {
+    border-color: #4361ee; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #4361ee;
+  }
+  #dual-name-customizer .dn-swatch-label {
+    display: block; text-align: center; font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;
+  }
+
+  /* Packing cards with images */
+  #dual-name-customizer .dn-packing-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;
+  }
+  #dual-name-customizer .dn-packing-card {
+    border: 2px solid #e2e8f0; border-radius: 12px; background: #fff;
+    cursor: pointer; transition: all 0.2s ease; overflow: hidden; text-align: center;
+  }
+  #dual-name-customizer .dn-packing-card:hover {
+    border-color: #4361ee; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.12);
+  }
+  #dual-name-customizer .dn-packing-card.dn-selected {
+    border-color: #4361ee; box-shadow: 0 0 0 2px #4361ee;
+  }
+  #dual-name-customizer .dn-packing-card img {
+    width: 100%; height: 140px; object-fit: cover; display: block;
+  }
+  #dual-name-customizer .dn-packing-card .dn-packing-info {
+    padding: 12px;
+  }
+  #dual-name-customizer .dn-packing-card .dn-packing-name {
+    font-size: 14px; font-weight: 600; color: #1e293b;
+  }
+  #dual-name-customizer .dn-packing-card .dn-packing-price {
+    font-size: 12px; color: #64748b; margin-top: 4px;
+  }
+
+  /* Buttons */
+  #dual-name-customizer .dn-btn-next,
+  #dual-name-customizer .dn-btn-cart {
+    width: 100%; padding: 14px; background: #4361ee; color: #fff; border: none;
+    border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  #dual-name-customizer .dn-btn-next:hover,
+  #dual-name-customizer .dn-btn-cart:hover { background: #3a56d4; }
+  #dual-name-customizer .dn-btn-next:disabled,
+  #dual-name-customizer .dn-btn-cart:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  #dual-name-customizer .dn-btn-back {
+    width: 100%; padding: 10px; background: none; color: #64748b; border: 1px solid #e2e8f0;
+    border-radius: 8px; font-size: 13px; cursor: pointer; margin-top: 8px;
+    transition: all 0.2s ease;
+  }
+  #dual-name-customizer .dn-btn-back:hover { color: #1e293b; border-color: #cbd5e1; }
+
+  /* Price */
+  #dual-name-customizer .dn-price-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; border-top: 1px solid #e2e8f0; margin-top: 8px;
+  }
+  #dual-name-customizer .dn-price-label { font-size: 16px; font-weight: 500; color: #64748b; }
+  #dual-name-customizer .dn-price { font-size: 24px; font-weight: 700; color: #1e293b; }
+
+  #dual-name-customizer .dn-unavailable {
+    color: #ef4444; font-size: 13px; margin-bottom: 8px; display: none;
+  }
+  #dual-name-customizer .dn-unavailable.active { display: block; }
+
+  /* Mobile */
+  @media (max-width: 480px) {
+    #dual-name-customizer #dn-iframe { height: 420px; }
+    #dual-name-customizer .dn-swatch { width: 36px; height: 36px; }
+    #dual-name-customizer .dn-packing-grid { grid-template-columns: 1fr; }
+    #dual-name-customizer .dn-packing-card img { height: 120px; }
+  }
+</style>
+
+<script>
+(function() {
+  'use strict';
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  CONFIGURATION                                               ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  var CONFIG = {
+    embedUrl: 'https://dna-si1n.onrender.com/customer.html',
+
+    // Hex colors for swatches — must match Shopify variant option1 names
+    colorHex: {
+      'Black':   '#1a1a1a',
+      'White':   '#f5f5f5',
+      'Blue':    '#2563EB',
+      'Pink':    '#EC4899',
+      'Yellow':  '#EAB308',
+      'Orange':  '#F97316',
+      'Purple':  '#9333EA',
+      'Red':     '#EF4444',
+      'Silver':  '#9CA3AF',
+      'Green':   '#22C55E'
+    },
+
+    // Packing images — update these URLs after uploading to Shopify Files
+    // For now, these point to the Render-hosted images
+    packingImages: {
+      'Cartoon Box':  'https://dna-si1n.onrender.com/images/packing/cartoon-box.jpg',
+      'Wooden Box':   'https://dna-si1n.onrender.com/images/packing/wooden-box.jpg',
+      'Acrylic Box':  'https://dna-si1n.onrender.com/images/packing/acrylic-box.jpg'
+    }
+  };
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  READ PRODUCT VARIANTS FROM SHOPIFY                          ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  var productData = null;
+  try {
+    productData = {{ product | json }};
+  } catch (e) {
+    console.error('Dual Name: Could not read product data.');
+  }
+  if (!productData) return;
+
+  var variants = productData.variants || [];
+  var colorsSet = {};
+  var packingSet = {};
+  var variantMap = {};
+
+  variants.forEach(function(v) {
+    var color = v.option1;
+    var packing = v.option2;
+    if (color) colorsSet[color] = true;
+    if (packing) packingSet[packing] = true;
+    variantMap[(color || '') + ' / ' + (packing || '')] = v;
+  });
+
+  var colors = Object.keys(colorsSet);
+  var packingOptions = Object.keys(packingSet);
+  if (colors.length === 0) return;
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  STATE                                                       ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  var state = {
+    name1: '', name2: '', screenshot: '',
+    selectedColor: colors[0],
+    selectedPacking: packingOptions[0] || ''
+  };
+
+  function getSelectedVariant() {
+    return variantMap[state.selectedColor + ' / ' + state.selectedPacking] || null;
+  }
+
+  function formatPrice(cents) {
+    return '$' + (cents / 100).toFixed(2);
+  }
+
+  function updatePrice() {
+    var variant = getSelectedVariant();
+    var priceEl = document.getElementById('dn-price');
+    var unavailableEl = document.getElementById('dn-unavailable');
+    var cartBtn = document.getElementById('dn-add-to-cart');
+
+    if (variant && variant.available) {
+      priceEl.textContent = formatPrice(variant.price);
+      unavailableEl.classList.remove('active');
+      cartBtn.disabled = false;
+    } else if (variant) {
+      priceEl.textContent = formatPrice(variant.price);
+      unavailableEl.classList.add('active');
+      cartBtn.disabled = true;
+    } else {
+      priceEl.textContent = '--';
+      unavailableEl.classList.add('active');
+      cartBtn.disabled = true;
+    }
+  }
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  INIT UI                                                     ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  document.getElementById('dn-iframe').src = CONFIG.embedUrl;
+
+  // --- Color swatches ---
+  var colorsEl = document.getElementById('dn-colors');
+  colors.forEach(function(colorName) {
+    var wrap = document.createElement('div');
+    wrap.className = 'dn-swatch-wrap';
+
+    var swatch = document.createElement('div');
+    swatch.className = 'dn-swatch' + (colorName === state.selectedColor ? ' dn-selected' : '');
+    swatch.style.backgroundColor = CONFIG.colorHex[colorName] || '#ccc';
+    if (colorName.toLowerCase() === 'white') swatch.style.border = '2px solid #e2e8f0';
+
+    swatch.addEventListener('click', function() {
+      state.selectedColor = colorName;
+      colorsEl.querySelectorAll('.dn-swatch').forEach(function(s) { s.classList.remove('dn-selected'); });
+      swatch.classList.add('dn-selected');
+    });
+
+    var label = document.createElement('span');
+    label.className = 'dn-swatch-label';
+    label.textContent = colorName;
+
+    wrap.appendChild(swatch);
+    wrap.appendChild(label);
+    colorsEl.appendChild(wrap);
+  });
+
+  // --- Packing cards with images ---
+  var packingEl = document.getElementById('dn-packing');
+  packingOptions.forEach(function(packName) {
+    var card = document.createElement('div');
+    card.className = 'dn-packing-card' + (packName === state.selectedPacking ? ' dn-selected' : '');
+
+    var imgUrl = CONFIG.packingImages[packName] || '';
+    if (imgUrl) {
+      var img = document.createElement('img');
+      img.src = imgUrl;
+      img.alt = packName;
+      img.loading = 'lazy';
+      card.appendChild(img);
+    }
+
+    var info = document.createElement('div');
+    info.className = 'dn-packing-info';
+
+    var name = document.createElement('div');
+    name.className = 'dn-packing-name';
+    name.textContent = packName;
+    info.appendChild(name);
+
+    // Show starting price for this packing (cheapest color combo)
+    var cheapest = null;
+    variants.forEach(function(v) {
+      if (v.option2 === packName && v.available) {
+        if (!cheapest || v.price < cheapest) cheapest = v.price;
+      }
+    });
+    if (cheapest !== null) {
+      var priceTag = document.createElement('div');
+      priceTag.className = 'dn-packing-price';
+      priceTag.textContent = 'From ' + formatPrice(cheapest);
+      info.appendChild(priceTag);
+    }
+
+    card.appendChild(info);
+
+    card.addEventListener('click', function() {
+      state.selectedPacking = packName;
+      packingEl.querySelectorAll('.dn-packing-card').forEach(function(c) { c.classList.remove('dn-selected'); });
+      card.classList.add('dn-selected');
+      updatePrice();
+    });
+
+    packingEl.appendChild(card);
+  });
+
+  updatePrice();
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  STEP NAVIGATION                                             ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  // Preview ready → show color step
+  window.addEventListener('message', function(event) {
+    var data = event.data;
+    if (!data || data.source !== 'dual-name') return;
+
+    if (data.type === 'preview-ready') {
+      state.name1 = data.name1;
+      state.name2 = data.name2;
+      state.screenshot = data.screenshot;
+
+      document.getElementById('dn-step-color').classList.remove('dn-hidden');
+      document.getElementById('dn-step-color').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  });
+
+  // Color → Packing
+  document.getElementById('dn-next-packing').addEventListener('click', function() {
+    document.getElementById('dn-step-color').classList.add('dn-hidden');
+    document.getElementById('dn-step-packing').classList.remove('dn-hidden');
+    updatePrice();
+    document.getElementById('dn-step-packing').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  // Back to Color
+  document.getElementById('dn-back-color').addEventListener('click', function() {
+    document.getElementById('dn-step-packing').classList.add('dn-hidden');
+    document.getElementById('dn-step-color').classList.remove('dn-hidden');
+    document.getElementById('dn-step-color').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  ADD TO CART                                                 ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  document.getElementById('dn-add-to-cart').addEventListener('click', function() {
+    var btn = this;
+    var variant = getSelectedVariant();
+
+    if (!state.name1 || !state.name2) { alert('Please generate a preview first.'); return; }
+    if (!variant || !variant.available) { alert('This combination is unavailable.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
+
+    fetch('/cart/add.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: [{
+          id: variant.id,
+          quantity: 1,
+          properties: {
+            'Name 1': state.name1,
+            'Name 2': state.name2,
+            '_preview_image': state.screenshot
+          }
+        }]
+      })
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Cart API error');
+      return res.json();
+    })
+    .then(function() {
+      btn.textContent = 'Added to Cart!';
+      btn.style.background = '#10b981';
+      setTimeout(function() { window.location.href = '/cart'; }, 800);
+    })
+    .catch(function(err) {
+      console.error('Add to cart failed:', err);
+      btn.disabled = false;
+      btn.textContent = 'Add to Cart';
+      btn.style.background = '';
+      alert('Failed to add to cart. Please try again.');
+    });
+  });
+
+})();
+</script>

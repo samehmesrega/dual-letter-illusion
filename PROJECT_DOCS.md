@@ -1,5 +1,5 @@
 # Dual Letter Illusion — Project Documentation
-> Last updated: 2026-03-04 (Session 6) | Current state: WORKING with @jscad/modeling CSG
+> Last updated: 2026-03-05 (Session 7) | Current state: WORKING with @jscad/modeling CSG + Shopify integration
 
 ---
 
@@ -31,6 +31,7 @@ A browser-based 3D dual-letter illusion (ambigram) generator.
 dual-letter-illusion/
 ├── index.html
 ├── embed.html
+├── customer.html              ← Shopify embed (customer-facing, no controls)
 ├── package.json
 ├── vite.config.js
 ├── PROJECT_DOCS.md          ← this file
@@ -50,11 +51,13 @@ dual-letter-illusion/
     │   └── STLExporter.js
     ├── ui/
     │   ├── InputPanel.js
-    │   └── PreviewPanel.js
+    │   ├── PreviewPanel.js
+    │   └── CustomerPanel.js   ← Minimal UI for Shopify embed
     ├── fonts/
     │   └── curated-fonts.js ← 6 letter fonts + INSCRIPTION_FONT constant
     └── styles/
-        └── main.css
+        ├── main.css
+        └── customer.css       ← Standalone styles for Shopify embed
 ```
 
 ---
@@ -475,3 +478,54 @@ DEFAULT = Roboto Bold (OverpassMono has CFF glyph issues — avoid as default)
 | Session 6 | Renamed labels: Side A→Name 1, Side B→Name 2, Inscription→Text on base |
 | Session 6 | Shorter name padded with ♥ (U+2665) heart symbol instead of spaces |
 | Session 6 | Programmatic heart shape generator: 20 bezier-curve variants in GlyphToJSCAD.js with dropdown selector (Heart 1–20) |
+| Session 7 | Shopify integration: customer.html embed + CustomerPanel.js + customer.css + shopify-snippet.liquid |
+| Session 7 | Customer flow: 3D preview → color/packing selection → Add to Cart via Shopify Cart API |
+| Session 7 | postMessage protocol: iframe sends preview-loading/preview-ready/preview-error to Shopify parent page |
+| Session 7 | Fixed settings for customers: Anton font, fontSize 72, cornerRadius 5, baseThickness 2, heartStyle 9 |
+
+---
+
+## Shopify Integration
+
+### Architecture
+```
+Shopify Product Page (pickedin.net)
+  └── iframe (dna-si1n.onrender.com/customer.html)
+        ├── 3D preview canvas (orbit controls)
+        ├── Name 1 + Name 2 inputs
+        └── Generate button
+  └── Shopify-side JS (shopify-snippet.liquid)
+        ├── Color swatches (10 colors)
+        ├── Packing selector (3 options)
+        ├── Dynamic price display
+        └── Add to Cart → /cart/add.js
+```
+
+### Customer Flow
+1. **Preview** — Enter names → Generate → interactive 3D model
+2. **Customize** — Choose color + packing → price updates
+3. **Add to Cart** — Line item properties: Name 1, Name 2, Color, Packing, screenshot
+
+### postMessage Protocol (iframe → parent)
+| Type | Payload | When |
+|------|---------|------|
+| `preview-loading` | `{}` | Generate clicked |
+| `preview-ready` | `{ name1, name2, screenshot }` | Model built |
+| `preview-error` | `{ message }` | Build failed |
+
+All messages include `source: 'dual-name'` for filtering.
+
+### Files
+- `customer.html` — entry point for iframe embed
+- `src/customer.js` — slim orchestrator (fixed Anton font, no download/batch/debug)
+- `src/ui/CustomerPanel.js` — minimal UI (2 inputs + generate button)
+- `src/styles/customer.css` — standalone vertical layout
+- `shopify-extension/shopify-snippet.liquid` — paste into Shopify Custom Liquid block
+
+### Shopify Setup
+1. Deploy to Render (customer.html included in `npm run build`)
+2. In Shopify Admin → Online Store → Themes → Customize
+3. Add "Custom Liquid" block to product page
+4. Paste contents of `shopify-snippet.liquid`
+5. Set `CONFIG.variantId` to your product variant ID
+6. Adjust `CONFIG.basePrice` and color/packing prices as needed

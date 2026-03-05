@@ -8,7 +8,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: 'index.html',
-        embed: 'embed.html'
+        embed: 'embed.html',
+        customer: 'customer.html'
       }
     }
   },
