@@ -34,6 +34,17 @@ const FONTS = [
   { family: 'Chakra Petch',     weight: 700, file: 'ChakraPetch-Bold.ttf'       },
   { family: 'Orbitron',         weight: 700, file: 'Orbitron-Bold.ttf'          },
   { family: 'Audiowide',        weight: 400, file: 'Audiowide-Regular.ttf'      },
+  // Mono fonts (similar to Overpass Mono Bold)
+  { family: 'Space Mono',       weight: 700, file: 'SpaceMono-Bold.ttf'         },
+  { family: 'Roboto Mono',      weight: 700, file: 'RobotoMono-Bold.ttf'        },
+  { family: 'Source Code Pro',   weight: 700, file: 'SourceCodePro-Bold.ttf'     },
+  { family: 'IBM Plex Mono',    weight: 700, file: 'IBMPlexMono-Bold.ttf'       },
+  { family: 'JetBrains Mono',   weight: 700, file: 'JetBrainsMono-Bold.ttf'     },
+  { family: 'Fira Mono',        weight: 700, file: 'FiraMono-Bold.ttf'          },
+  { family: 'Share Tech Mono',  weight: 400, file: 'ShareTechMono-Regular.ttf'  },
+  { family: 'Oxygen Mono',      weight: 400, file: 'OxygenMono-Regular.ttf'     },
+  { family: 'Ubuntu Mono',      weight: 700, file: 'UbuntuMono-Bold.ttf'        },
+  { family: 'PT Mono',          weight: 400, file: 'PTMono-Regular.ttf'         },
 ];
 
 // ── helpers ───────────────────────────────────────────────────────────────────

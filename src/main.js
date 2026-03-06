@@ -5,13 +5,13 @@ import { createPreviewPanel } from './ui/PreviewPanel.js';
 import { buildAmbigram, debugLog } from './engine/AmbigramBuilder.js';
 import { exportToSTL } from './engine/STLExporter.js';
 import { processBatch } from './engine/BatchProcessor.js';
-import { DEFAULT_FONT, INSCRIPTION_FONT } from './fonts/curated-fonts.js';
+import { FONT_FILE, INSCRIPTION_FONT } from './fonts/curated-fonts.js';
 
 // App state
 const state = {
   textA: '',
   textB: '',
-  fontFile:      DEFAULT_FONT.file,
+  fontFile:      FONT_FILE,
   fontSize:      72,
   cornerRadius:  5,
   baseThickness: 2,

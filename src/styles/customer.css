@@ -105,12 +105,70 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(255,255,255,0.35);
-  font-size: 15px;
+  color: rgba(255,255,255,0.85);
+  font-size: 16px;
   text-align: center;
   padding: 20px;
-  line-height: 1.6;
+  line-height: 1.7;
   letter-spacing: 0.2px;
+  z-index: 5;
+}
+
+.customer-placeholder strong {
+  color: #fff;
+}
+
+/* ── Drag Hint ── */
+.customer-drag-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.6);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  background: rgba(0,0,0,0.5);
+  padding: 10px 20px;
+  border-radius: 20px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.customer-drag-hint.visible {
+  opacity: 1;
+  animation: hintBounce 2.5s ease-in-out infinite;
+}
+
+.customer-drag-hint.hidden {
+  opacity: 0 !important;
+  animation: none;
+}
+
+.customer-drag-hint svg {
+  animation: hintArrow 1.5s ease-in-out infinite alternate;
+}
+
+.customer-drag-hint svg:first-child {
+  animation-direction: alternate-reverse;
+}
+
+@keyframes hintBounce {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+}
+
+@keyframes hintArrow {
+  0% { transform: translateX(-3px); }
+  100% { transform: translateX(3px); }
 }
 
 /* ── Error Toast ── */

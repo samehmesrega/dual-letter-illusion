@@ -6,7 +6,7 @@ import { buildAmbigram } from './engine/AmbigramBuilder.js';
 
 // Fixed settings — customer doesn't control these
 const FIXED = {
-  fontFile: 'Anton-Regular.ttf',
+  fontFile: 'OverpassMono-Bold.ttf',
   fontSize: 72,
   cornerRadius: 5,
   baseThickness: 2,
@@ -25,11 +25,40 @@ loadingEl.className = 'customer-loading';
 loadingEl.innerHTML = '<div class="spinner"></div><span>Generating your preview...</span>';
 previewArea.appendChild(loadingEl);
 
-// Placeholder
+// Placeholder — "type two names" message
 const placeholderEl = document.createElement('div');
 placeholderEl.className = 'customer-placeholder';
-placeholderEl.textContent = 'Enter two names and tap Generate to see your 3D preview';
+placeholderEl.innerHTML = `
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;margin-bottom:12px">
+    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+  </svg>
+  <span>Type two names and tap <strong>Generate</strong><br>to create your custom 3D piece</span>
+`;
 previewArea.appendChild(placeholderEl);
+
+// Drag hint — arrows icon, disappears on first interaction
+const dragHint = document.createElement('div');
+dragHint.className = 'customer-drag-hint';
+dragHint.innerHTML = `
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="15 18 9 12 15 6"/>
+  </svg>
+  <span>Drag to rotate</span>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+`;
+previewArea.appendChild(dragHint);
+
+// Hide drag hint on first pointer interaction with canvas
+let hintDismissed = false;
+function dismissHint() {
+  if (hintDismissed) return;
+  hintDismissed = true;
+  dragHint.classList.add('hidden');
+}
+previewArea.addEventListener('pointerdown', dismissHint);
+previewArea.addEventListener('touchstart', dismissHint, { passive: true });
 
 // Error toast
 const errorEl = document.createElement('div');
@@ -79,21 +108,28 @@ async function handleGenerate() {
     ctx.scene.add(model);
     fitCameraToObject(ctx.camera, model, ctx.controls);
 
-    // Reposition camera to face Name 1 more directly (lower, more frontal)
+    // Camera at base level, looking straight at Name 1
     const bbox = new THREE.Box3().setFromObject(model);
     const center = bbox.getCenter(new THREE.Vector3());
     const size = bbox.getSize(new THREE.Vector3());
     const baseDim = Math.max(size.x, size.z, size.y * 0.5);
     const fov = ctx.camera.fov * (Math.PI / 180);
     const dist = (baseDim / 2) / Math.tan(fov / 2) * 1.5;
+    const baseY = bbox.min.y;
+    const ang = Math.PI / 4; // 45° angle toward Name 1
     ctx.camera.position.set(
-      center.x - dist * 0.85,  // -X: face Name 1 side
-      center.y + dist * 0.25,  // low angle — read the letters
-      center.z + dist * 0.5
+      center.x - dist * Math.cos(ang),
+      baseY,
+      center.z + dist * Math.sin(ang)
     );
-    ctx.camera.lookAt(center);
+    ctx.camera.lookAt(center.x, center.y, center.z);
     ctx.controls.target.copy(center);
     ctx.controls.update();
+
+    // Show drag hint after first generation
+    if (!hintDismissed) {
+      dragHint.classList.add('visible');
+    }
 
     // Capture screenshot synchronously after render
     ctx.renderer.render(ctx.scene, ctx.camera);
@@ -108,6 +144,17 @@ async function handleGenerate() {
 
   panel.setLoading(false);
   loadingEl.classList.remove('active');
+}
+
+// Change model color — receives hex color from parent (Shopify snippet)
+function changeModelColor(hex) {
+  if (!currentModel) return;
+  const color = new THREE.Color(hex);
+  currentModel.traverse(child => {
+    if (child.isMesh && child.material) {
+      child.material.color.copy(color);
+    }
+  });
 }
 
 function showError(msg) {
@@ -135,9 +182,12 @@ function disposeGroup(group) {
   });
 }
 
-// Listen for optional init message from parent
+// Listen for messages from parent (Shopify snippet)
 window.addEventListener('message', (event) => {
-  if (event.data?.type === 'init') {
-    // Future: could accept config overrides
+  const data = event.data;
+  if (!data || data.source !== 'dual-name-parent') return;
+
+  if (data.type === 'change-color' && data.hex) {
+    changeModelColor(data.hex);
   }
 });

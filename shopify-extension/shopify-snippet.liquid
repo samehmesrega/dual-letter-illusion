@@ -451,6 +451,13 @@
       state.selectedColor = colorName;
       colorsEl.querySelectorAll('.dn-swatch').forEach(function(s) { s.classList.remove('dn-selected'); });
       swatch.classList.add('dn-selected');
+
+      // Send color to iframe to update 3D model color
+      var hex = CONFIG.colorHex[colorName] || '#ccc';
+      var iframe = document.getElementById('dn-iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ source: 'dual-name-parent', type: 'change-color', hex: hex }, '*');
+      }
     });
 
     var label = document.createElement('span');

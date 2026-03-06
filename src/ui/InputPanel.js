@@ -1,4 +1,4 @@
-import { CURATED_FONTS } from '../fonts/curated-fonts.js';
+import { FONT_FILE } from '../fonts/curated-fonts.js';
 
 /**
  * Create the input panel UI with text inputs, font picker, size slider, and buttons.
@@ -22,10 +22,6 @@ export function createInputPanel(container, callbacks) {
       <input type="text" id="text-b" maxlength="15" placeholder="e.g. HATE" autocomplete="off" spellcheck="false" />
     </div>
     <div id="length-warning" class="warning hidden">ADD HEARTS TO BALANCE THE LETTERS IN BOTH NAMES</div>
-    <div class="panel-section">
-      <label for="font-select">Font</label>
-      <select id="font-select"></select>
-    </div>
     <div class="panel-section">
       <label for="font-size">Size: <span id="size-value">72</span></label>
       <input type="range" id="font-size" min="36" max="144" value="72" step="1" />
@@ -65,15 +61,6 @@ export function createInputPanel(container, callbacks) {
     </div>
   `;
 
-  // Populate font dropdown
-  const fontSelect = container.querySelector('#font-select');
-  for (const font of CURATED_FONTS) {
-    const opt = document.createElement('option');
-    opt.value = font.file;
-    opt.textContent = font.name;
-    fontSelect.appendChild(opt);
-  }
-
   // Elements
   const textAInput    = container.querySelector('#text-a');
   const textBInput    = container.querySelector('#text-b');
@@ -104,7 +91,7 @@ export function createInputPanel(container, callbacks) {
     callbacks.onChange({
       textA,
       textB,
-      fontFile:       fontSelect.value,
+      fontFile:       FONT_FILE,
       fontSize:       parseInt(sizeInput.value),
       cornerRadius:   parseFloat(radiusInput.value),
       baseThickness:  parseFloat(thicknessInput.value),
@@ -116,7 +103,6 @@ export function createInputPanel(container, callbacks) {
   textAInput.addEventListener('input', emitChange);
   textBInput.addEventListener('input', emitChange);
   inscriptionInput.addEventListener('input', emitChange);
-  fontSelect.addEventListener('change', emitChange);
   sizeInput.addEventListener('input', () => {
     sizeValue.textContent = sizeInput.value;
     emitChange();
@@ -160,7 +146,7 @@ export function createInputPanel(container, callbacks) {
       return {
         textA:        textAInput.value.trim(),
         textB:        textBInput.value.trim(),
-        fontFile:     fontSelect.value,
+        fontFile:     FONT_FILE,
         fontSize:     parseInt(sizeInput.value),
         cornerRadius:  parseFloat(radiusInput.value),
         baseThickness: parseFloat(thicknessInput.value),
