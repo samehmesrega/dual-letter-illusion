@@ -42,13 +42,15 @@ export function createInputPanel(container, callbacks) {
 
     <details class="panel-details" open>
       <summary>Order Details</summary>
-      <div class="panel-section">
-        <label for="order-number">Order Number</label>
-        <input type="text" id="order-number" maxlength="30" placeholder="e.g. 1001" autocomplete="off" spellcheck="false" />
-      </div>
-      <div class="panel-section">
-        <label for="inscription-text">Text on base</label>
-        <input type="text" id="inscription-text" maxlength="60" placeholder="e.g. Made with love / بحبك" autocomplete="off" spellcheck="false" />
+      <div class="panel-details-content">
+        <div class="panel-section">
+          <label for="order-number">Order Number</label>
+          <input type="text" id="order-number" maxlength="30" placeholder="e.g. 1001" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="panel-section">
+          <label for="inscription-text">Text on base</label>
+          <input type="text" id="inscription-text" maxlength="60" placeholder="e.g. Made with love / بحبك" autocomplete="off" spellcheck="false" />
+        </div>
       </div>
     </details>
 
@@ -69,26 +71,26 @@ export function createInputPanel(container, callbacks) {
 
     <details class="panel-details">
       <summary>Advanced</summary>
-      <div class="panel-section">
-        <label for="font-size">Size: <span id="size-value">72</span></label>
-        <input type="range" id="font-size" min="36" max="144" value="72" step="1" />
-      </div>
-      <div class="panel-section">
-        <label for="corner-radius">Fillet: <span id="radius-value">5</span> mm</label>
-        <input type="range" id="corner-radius" min="5" max="50" value="5" step="1" />
-      </div>
-      <div class="panel-section">
-        <label for="base-thickness">Base Thickness: <span id="thickness-value">2</span> mm</label>
-        <input type="range" id="base-thickness" min="1" max="5" value="2" step="0.5" />
+      <div class="panel-details-content">
+        <div class="panel-section">
+          <label for="font-size">Size: <span id="size-value">72</span></label>
+          <input type="range" id="font-size" min="36" max="144" value="72" step="1" />
+        </div>
+        <div class="panel-section">
+          <label for="corner-radius">Fillet: <span id="radius-value">5</span> mm</label>
+          <input type="range" id="corner-radius" min="5" max="50" value="5" step="1" />
+        </div>
+        <div class="panel-section">
+          <label for="base-thickness">Base Thickness: <span id="thickness-value">2</span> mm</label>
+          <input type="range" id="base-thickness" min="1" max="5" value="2" step="0.5" />
+        </div>
       </div>
     </details>
 
     <details class="panel-details">
       <summary>Debug</summary>
-      <div class="panel-actions">
+      <div class="panel-details-content">
         <button id="btn-wireframe" class="btn-secondary">Wireframe: OFF</button>
-      </div>
-      <div class="panel-actions">
         <button id="btn-copy-debug" class="btn-secondary">Copy Debug</button>
       </div>
     </details>
