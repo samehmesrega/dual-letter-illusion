@@ -84,8 +84,8 @@ export async function processBatch(sheetUrl, options, onProgress) {
     throw new Error('Sheet has no data rows (need header + at least 1 row).');
   }
 
-  // Skip header row — columns: Order number, Name 1, Name 2, Text on base, Color, Pad Before, Pad After
-  const dataRows = allRows.slice(1).filter(row => row[1] && row[2]);
+  // Skip header row — columns: Order number, Color, Name 1, Name 2, Text on base, Pad Before, Pad After
+  const dataRows = allRows.slice(1).filter(row => row[2] && row[3]);
 
   if (dataRows.length === 0) {
     throw new Error('No valid rows found. Each row needs Order number, Name 1, and Name 2.');
@@ -97,7 +97,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
 
   for (let i = 0; i < total; i++) {
     await new Promise(r => setTimeout(r, 0)); // yield to main thread for UI updates
-    const [orderNum, textA, textB, inscription, color, padBeforeStr, padAfterStr] = dataRows[i];
+    const [orderNum, color, textA, textB, inscription, padBeforeStr, padAfterStr] = dataRows[i];
     onProgress(i + 1, total, `Generating ${textA} + ${textB}...`);
 
     try {

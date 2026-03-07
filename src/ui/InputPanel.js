@@ -39,12 +39,8 @@ export function createInputPanel(container, callbacks) {
         <button class="pad-btn" data-pad="after" data-dir="1">+</button>
       </div>
     </div>
-    <div class="btn-row">
-      <button id="btn-generate" class="btn-primary">Generate</button>
-      <button id="btn-download" class="btn-download" disabled>Download STL</button>
-    </div>
 
-    <details class="panel-details">
+    <details class="panel-details" open>
       <summary>Order Details</summary>
       <div class="panel-section">
         <label for="order-number">Order Number</label>
@@ -55,6 +51,21 @@ export function createInputPanel(container, callbacks) {
         <input type="text" id="inscription-text" maxlength="60" placeholder="e.g. Made with love / بحبك" autocomplete="off" spellcheck="false" />
       </div>
     </details>
+
+    <div class="btn-row">
+      <button id="btn-generate" class="btn-primary">Generate</button>
+      <button id="btn-download" class="btn-download" disabled>Download STL</button>
+    </div>
+
+    <div class="panel-actions">
+      <button id="btn-batch" class="btn-secondary">Generate from Google Sheet</button>
+    </div>
+    <div id="batch-progress" class="batch-progress hidden">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <span id="batch-status" class="batch-status"></span>
+    </div>
+
+    <div class="batch-separator"></div>
 
     <details class="panel-details">
       <summary>Advanced</summary>
@@ -81,16 +92,6 @@ export function createInputPanel(container, callbacks) {
         <button id="btn-copy-debug" class="btn-secondary">Copy Debug</button>
       </div>
     </details>
-
-    <div class="batch-separator"></div>
-
-    <div class="panel-actions">
-      <button id="btn-batch" class="btn-secondary">Generate from Google Sheet</button>
-    </div>
-    <div id="batch-progress" class="batch-progress hidden">
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-      <span id="batch-status" class="batch-status"></span>
-    </div>
   `;
 
   // Elements
