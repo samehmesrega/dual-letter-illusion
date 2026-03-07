@@ -37,11 +37,13 @@ export async function buildAmbigram(options) {
     heartStyle      = 1,
     inscriptionText = '',
     inscriptionFontUrl = null,
-    orderNumber = ''
+    orderNumber = '',
+    padBefore = 0,
+    padAfter  = 0
   } = options;
 
   debugLog.length = 0;
-  dbg(`=== BUILD START: "${textA}" + "${textB}" | font: ${fontUrl} | size: ${fontSize} ===`);
+  dbg(`=== BUILD START: "${textA}" + "${textB}" | font: ${fontUrl} | size: ${fontSize} | pad: ${padBefore}/${padAfter} ===`);
 
   const font = await loadFont(fontUrl);
 
@@ -52,8 +54,11 @@ export async function buildAmbigram(options) {
   const a = textA.toUpperCase().padEnd(maxLen, '\u2665');
   const b = textB.toUpperCase().padEnd(maxLen, '\u2665');
 
+  // Slot width: approximate width of one letter position
+  const slotWidth = fontSize * 0.7 + spacing;
+
   const group = new THREE.Group();
-  let currentX = 0, maxHeight = 0, maxDepth = 0;
+  let currentX = padBefore * slotWidth, maxHeight = 0, maxDepth = 0;
 
   for (let i = 0; i < maxLen; i++) {
     const charA = a[i];
@@ -162,6 +167,9 @@ export async function buildAmbigram(options) {
     mesh.name = `pair_${charA}_${charB}`;
     group.add(mesh);
   }
+
+  // Add empty slots after letters
+  currentX += padAfter * slotWidth;
 
   // ── Inscription (flat text on base, readable from above) ──
   let inscrDepthExtra = 0;   // extra depth the base plate needs in +Z

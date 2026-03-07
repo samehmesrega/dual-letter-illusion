@@ -84,7 +84,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
     throw new Error('Sheet has no data rows (need header + at least 1 row).');
   }
 
-  // Skip header row — columns: Order number, Name 1, Name 2, Text on base
+  // Skip header row — columns: Order number, Name 1, Name 2, Text on base, Color, Pad Before, Pad After
   const dataRows = allRows.slice(1).filter(row => row[1] && row[2]);
 
   if (dataRows.length === 0) {
@@ -97,7 +97,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
 
   for (let i = 0; i < total; i++) {
     await new Promise(r => setTimeout(r, 0)); // yield to main thread for UI updates
-    const [orderNum, textA, textB, inscription] = dataRows[i];
+    const [orderNum, textA, textB, inscription, color, padBeforeStr, padAfterStr] = dataRows[i];
     onProgress(i + 1, total, `Generating ${textA} + ${textB}...`);
 
     try {
@@ -111,11 +111,14 @@ export async function processBatch(sheetUrl, options, onProgress) {
         heartStyle:         options.heartStyle || 1,
         inscriptionText:    inscription || '',
         inscriptionFontUrl: options.inscriptionFontUrl,
-        orderNumber:        orderNum || ''
+        orderNumber:        orderNum || '',
+        padBefore:          parseInt(padBeforeStr) || 0,
+        padAfter:           parseInt(padAfterStr) || 0
       });
 
       const blob = exportToSTLBlob(model);
-      const filename = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}.stl`;
+      const colorPart = color ? `-${safe(color)}` : '';
+      const filename = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}${colorPart}.stl`;
       zip.file(filename, blob);
 
       // Dispose geometries to free memory

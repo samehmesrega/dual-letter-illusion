@@ -299,6 +299,46 @@ body {
   cursor: not-allowed;
 }
 
+/* ── Padding controls ── */
+.pad-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.pad-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #888);
+  min-width: 38px;
+}
+
+.pad-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text, #fff);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pad-btn:hover {
+  background: var(--color-border);
+}
+
+.pad-value {
+  min-width: 16px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 /* ── Collapsible sections ── */
 .panel-details {
   margin-top: 12px;

@@ -18,6 +18,8 @@ const state = {
   heartStyle:    9,
   inscriptionText: '',
   orderNumber: '',
+  padBefore: 0,
+  padAfter: 0,
   currentModel:  null
 };
 
@@ -66,7 +68,9 @@ async function handleGenerate() {
       heartStyle:   state.heartStyle,
       inscriptionText: state.inscriptionText,
       inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`,
-      orderNumber: state.orderNumber
+      orderNumber: state.orderNumber,
+      padBefore: state.padBefore,
+      padAfter: state.padAfter
     });
 
     state.currentModel = model;

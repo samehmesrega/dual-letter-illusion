@@ -24,6 +24,19 @@ export function createInputPanel(container, callbacks) {
       <input type="text" id="text-b" maxlength="15" placeholder="e.g. HATE" autocomplete="off" spellcheck="false" />
     </div>
     <div id="length-warning" class="warning hidden">ADD HEARTS TO BALANCE THE LETTERS IN BOTH NAMES</div>
+    <div class="panel-section pad-controls">
+      <label>Padding</label>
+      <div class="pad-row">
+        <span class="pad-label">Before</span>
+        <button class="pad-btn" data-pad="before" data-dir="-1">-</button>
+        <span id="pad-before-value" class="pad-value">0</span>
+        <button class="pad-btn" data-pad="before" data-dir="1">+</button>
+        <span class="pad-label">After</span>
+        <button class="pad-btn" data-pad="after" data-dir="-1">-</button>
+        <span id="pad-after-value" class="pad-value">0</span>
+        <button class="pad-btn" data-pad="after" data-dir="1">+</button>
+      </div>
+    </div>
     <div class="panel-section">
       <label for="order-number">Order Number</label>
       <input type="text" id="order-number" maxlength="30" placeholder="e.g. 1001" autocomplete="off" spellcheck="false" />
@@ -89,6 +102,9 @@ export function createInputPanel(container, callbacks) {
   const btnGenerate     = container.querySelector('#btn-generate');
   const btnDownload   = container.querySelector('#btn-download');
   const lengthWarning = container.querySelector('#length-warning');
+  const padBeforeValue  = container.querySelector('#pad-before-value');
+  const padAfterValue   = container.querySelector('#pad-after-value');
+  let padBefore = 0, padAfter = 0;
 
   // Event handlers
   function emitChange() {
@@ -111,9 +127,27 @@ export function createInputPanel(container, callbacks) {
       baseThickness:  parseFloat(thicknessInput.value),
       heartStyle:     9,
       inscriptionText: inscriptionInput.value.trim(),
-      orderNumber: orderNumberInput.value.trim()
+      orderNumber: orderNumberInput.value.trim(),
+      padBefore,
+      padAfter
     });
   }
+
+  // Padding +/- buttons
+  container.querySelectorAll('.pad-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const which = btn.dataset.pad; // 'before' or 'after'
+      const dir = parseInt(btn.dataset.dir);
+      if (which === 'before') {
+        padBefore = Math.max(0, Math.min(5, padBefore + dir));
+        padBeforeValue.textContent = padBefore;
+      } else {
+        padAfter = Math.max(0, Math.min(5, padAfter + dir));
+        padAfterValue.textContent = padAfter;
+      }
+      emitChange();
+    });
+  });
 
   textAInput.addEventListener('input', emitChange);
   textBInput.addEventListener('input', emitChange);
@@ -180,7 +214,9 @@ export function createInputPanel(container, callbacks) {
         baseThickness: parseFloat(thicknessInput.value),
         heartStyle:    9,
         inscriptionText: inscriptionInput.value.trim(),
-        orderNumber: orderNumberInput.value.trim()
+        orderNumber: orderNumberInput.value.trim(),
+        padBefore,
+        padAfter
       };
     },
     setLoading(on) {
