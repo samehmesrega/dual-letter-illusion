@@ -110,7 +110,8 @@ export async function processBatch(sheetUrl, options, onProgress) {
         baseHeight:         options.baseThickness,
         heartStyle:         options.heartStyle || 1,
         inscriptionText:    inscription || '',
-        inscriptionFontUrl: options.inscriptionFontUrl
+        inscriptionFontUrl: options.inscriptionFontUrl,
+        orderNumber:        orderNum || ''
       });
 
       const blob = exportToSTLBlob(model);

@@ -17,6 +17,7 @@ const state = {
   baseThickness: 2,
   heartStyle:    9,
   inscriptionText: '',
+  orderNumber: '',
   currentModel:  null
 };
 
@@ -63,7 +64,8 @@ async function handleGenerate() {
       baseHeight:   state.baseThickness,
       heartStyle:   state.heartStyle,
       inscriptionText: state.inscriptionText,
-      inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`
+      inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`,
+      orderNumber: state.orderNumber
     });
 
     state.currentModel = model;
@@ -81,7 +83,8 @@ async function handleGenerate() {
 function handleDownload() {
   if (!state.currentModel) return;
   const safe = (s) => s.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_');
-  const filename = `DualName_${safe(state.textA)}_${safe(state.textB)}.stl`;
+  const orderPart = state.orderNumber ? `${safe(state.orderNumber)}-` : '';
+  const filename = `DN-${orderPart}${safe(state.textA)}-${safe(state.textB)}.stl`;
   exportToSTL(state.currentModel, filename);
 }
 

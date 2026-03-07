@@ -36,7 +36,8 @@ export async function buildAmbigram(options) {
     cornerRadius    = 0,
     heartStyle      = 1,
     inscriptionText = '',
-    inscriptionFontUrl = null
+    inscriptionFontUrl = null,
+    orderNumber = ''
   } = options;
 
   debugLog.length = 0;
@@ -249,6 +250,46 @@ export async function buildAmbigram(options) {
     base.position.z = baseZCenter;
     base.name = 'base_plate';
     group.add(base);
+
+    // ── Order number engraved on bottom of base ──
+    const orderTrimmed = (orderNumber || '').toString().trim();
+    if (orderTrimmed) {
+      dbg(`\n--- ORDER NUMBER: "${orderTrimmed}" ---`);
+      const orderFont = inscriptionFontUrl ? await loadFont(inscriptionFontUrl) : font;
+      const orderFontSize = 8;
+      const orderExtrudeH = 1; // 1 mm depth
+
+      const orderResult = textToJSCAD(orderFont, orderTrimmed, orderFontSize);
+      getGlyphDebugLog(); // clear log
+
+      if (orderResult) {
+        const { shape, bounds } = orderResult;
+        const cx = (bounds.minX + bounds.maxX) / 2;
+        const cy = (bounds.minY + bounds.maxY) / 2;
+        const centeredShape = transforms.translate([-cx, -cy, 0], shape);
+
+        const extruded = extrusions.extrudeLinear({ height: orderExtrudeH }, centeredShape);
+        const geo = jscadToThree(extruded);
+        // Flip upside down: text faces downward from base bottom
+        geo.rotateX(Math.PI / 2);
+
+        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+          color: 0xe8735a, roughness: 0.45, metalness: 0.0, side: THREE.DoubleSide
+        }));
+
+        geo.computeBoundingBox();
+        const bbox = geo.boundingBox;
+        // Center on base plate
+        mesh.position.x = lettersCenterX - (bbox.max.x + bbox.min.x) / 2;
+        mesh.position.z = baseZCenter - (bbox.max.z + bbox.min.z) / 2;
+        // Hang from bottom of base: base bottom Y minus 1mm extrusion
+        mesh.position.y = -maxHeight / 2 - baseHeight - bbox.min.y;
+
+        mesh.name = 'order_number';
+        group.add(mesh);
+        dbg(`  order number placed on base bottom`);
+      }
+    }
   }
 
   // Center the whole group
