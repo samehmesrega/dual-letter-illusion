@@ -42,6 +42,12 @@ export function createCustomerPanel(container, callbacks) {
   name1Input.addEventListener('input', checkWarning);
   name2Input.addEventListener('input', checkWarning);
 
+  function onEnterKey(e) {
+    if (e.key === 'Enter') callbacks.onGenerate();
+  }
+  name1Input.addEventListener('keydown', onEnterKey);
+  name2Input.addEventListener('keydown', onEnterKey);
+
   btnGenerate.addEventListener('click', () => callbacks.onGenerate());
 
   heartBtn.addEventListener('click', () => {

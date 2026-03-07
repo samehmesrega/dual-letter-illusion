@@ -80,7 +80,8 @@ async function handleGenerate() {
 
 function handleDownload() {
   if (!state.currentModel) return;
-  const filename = `DualLetter_${state.textA}_${state.textB}.stl`;
+  const safe = (s) => s.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_');
+  const filename = `DualName_${safe(state.textA)}_${safe(state.textB)}.stl`;
   exportToSTL(state.currentModel, filename);
 }
 
@@ -159,3 +160,47 @@ const actionsDiv = document.createElement('div');
 actionsDiv.className = 'panel-actions';
 actionsDiv.appendChild(debugBtn);
 panel.appendChild(actionsDiv);
+
+// --- Mobile tab toggle ---
+function setupMobileTabs() {
+  if (window.innerWidth > 768) return;
+
+  const main = document.getElementById('app-main');
+  const inputPanel = document.getElementById('input-panel');
+  const previewPanel = document.getElementById('preview-panel');
+
+  const tabBar = document.createElement('div');
+  tabBar.className = 'mobile-tabs';
+  tabBar.innerHTML = `
+    <button class="mobile-tab active" data-tab="controls">Controls</button>
+    <button class="mobile-tab" data-tab="preview">Preview</button>
+  `;
+  main.insertBefore(tabBar, main.firstChild);
+
+  const tabs = tabBar.querySelectorAll('.mobile-tab');
+  previewPanel.classList.add('mobile-hidden');
+
+  tabBar.addEventListener('click', (e) => {
+    const tab = e.target.closest('.mobile-tab');
+    if (!tab) return;
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    if (tab.dataset.tab === 'controls') {
+      inputPanel.classList.remove('mobile-hidden');
+      previewPanel.classList.add('mobile-hidden');
+    } else {
+      inputPanel.classList.add('mobile-hidden');
+      previewPanel.classList.remove('mobile-hidden');
+    }
+  });
+}
+setupMobileTabs();
+window.addEventListener('resize', () => {
+  const existing = document.querySelector('.mobile-tabs');
+  if (window.innerWidth <= 768 && !existing) setupMobileTabs();
+  if (window.innerWidth > 768 && existing) {
+    existing.remove();
+    document.getElementById('input-panel').classList.remove('mobile-hidden');
+    document.getElementById('preview-panel').classList.remove('mobile-hidden');
+  }
+});

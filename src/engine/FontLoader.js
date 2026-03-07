@@ -7,15 +7,21 @@ const fontCache = new Map();
  * @param {string} url - URL to the TTF file
  * @returns {Promise<opentype.Font>}
  */
-export function loadFont(url) {
+export function loadFont(url, retries = 1) {
   if (fontCache.has(url)) return Promise.resolve(fontCache.get(url));
 
   return new Promise((resolve, reject) => {
-    opentype.load(url, (err, font) => {
-      if (err) return reject(err);
-      fontCache.set(url, font);
-      resolve(font);
-    });
+    function attempt(remaining) {
+      opentype.load(url, (err, font) => {
+        if (err) {
+          if (remaining > 0) return attempt(remaining - 1);
+          return reject(new Error(`Failed to load font "${url}": ${err.message || err}`));
+        }
+        fontCache.set(url, font);
+        resolve(font);
+      });
+    }
+    attempt(retries);
   });
 }
 

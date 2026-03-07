@@ -103,6 +103,13 @@ export function createInputPanel(container, callbacks) {
   textAInput.addEventListener('input', emitChange);
   textBInput.addEventListener('input', emitChange);
   inscriptionInput.addEventListener('input', emitChange);
+
+  // Enter key triggers Generate
+  function onEnterKey(e) {
+    if (e.key === 'Enter') callbacks.onGenerate();
+  }
+  textAInput.addEventListener('keydown', onEnterKey);
+  textBInput.addEventListener('keydown', onEnterKey);
   sizeInput.addEventListener('input', () => {
     sizeValue.textContent = sizeInput.value;
     emitChange();

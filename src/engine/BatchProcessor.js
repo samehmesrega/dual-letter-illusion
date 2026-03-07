@@ -95,6 +95,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
   const zip = new JSZip();
 
   for (let i = 0; i < total; i++) {
+    await new Promise(r => setTimeout(r, 0)); // yield to main thread for UI updates
     const [textA, textB, inscription] = dataRows[i];
     onProgress(i + 1, total, `Generating ${textA} + ${textB}...`);
 

@@ -4,6 +4,9 @@ import { createCustomerPanel } from './ui/CustomerPanel.js';
 import { createScene, fitCameraToObject } from './engine/SceneManager.js';
 import { buildAmbigram } from './engine/AmbigramBuilder.js';
 
+// Restrict postMessage to parent origin (falls back to '*' when not in iframe)
+const ALLOWED_ORIGIN = window.location.ancestorOrigins?.[0] || '*';
+
 // Fixed settings — customer doesn't control these
 const FIXED = {
   fontFile: 'OverpassMono-Bold.ttf',
@@ -165,7 +168,7 @@ function showError(msg) {
 
 function notifyParent(type, data = {}) {
   if (window.parent !== window) {
-    window.parent.postMessage({ source: 'dual-name', type, ...data }, '*');
+    window.parent.postMessage({ source: 'dual-name', type, ...data }, ALLOWED_ORIGIN);
   }
 }
 
@@ -184,6 +187,7 @@ function disposeGroup(group) {
 
 // Listen for messages from parent (Shopify snippet)
 window.addEventListener('message', (event) => {
+  if (ALLOWED_ORIGIN !== '*' && event.origin !== ALLOWED_ORIGIN) return;
   const data = event.data;
   if (!data || data.source !== 'dual-name-parent') return;
 
