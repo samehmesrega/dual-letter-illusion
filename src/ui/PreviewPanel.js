@@ -32,10 +32,23 @@ export function createPreviewPanel(container) {
   `;
   container.appendChild(placeholder);
 
+  // Add reset camera button
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'btn-reset-camera';
+  resetBtn.title = 'Reset camera';
+  resetBtn.innerHTML = '&#x21ba;';
+  container.appendChild(resetBtn);
+
   const ctx = createScene(container);
   ctx.animate();
 
   let currentModel = null;
+
+  resetBtn.addEventListener('click', () => {
+    if (currentModel) {
+      fitCameraToObject(ctx.camera, currentModel, ctx.controls);
+    }
+  });
 
   return {
     setModel(group) {

@@ -14,14 +14,16 @@ const BATCH_SHEET_URL = 'https://docs.google.com/spreadsheets/d/19qQRLE1jzPR9Obt
  */
 export function createInputPanel(container, callbacks) {
   container.innerHTML = `
-    <div class="panel-section">
-      <label for="text-a">Name 1</label>
-      <input type="text" id="text-a" maxlength="15" placeholder="e.g. LOVE" autocomplete="off" spellcheck="false" />
+    <div class="names-row">
+      <div class="panel-section name-input">
+        <label for="text-a">Name 1</label>
+        <input type="text" id="text-a" maxlength="15" placeholder="e.g. LOVE" autocomplete="off" spellcheck="false" />
+      </div>
       <span id="copy-heart" class="copy-heart" title="Copy heart symbol">&#x2665;</span>
-    </div>
-    <div class="panel-section">
-      <label for="text-b">Name 2</label>
-      <input type="text" id="text-b" maxlength="15" placeholder="e.g. HATE" autocomplete="off" spellcheck="false" />
+      <div class="panel-section name-input">
+        <label for="text-b">Name 2</label>
+        <input type="text" id="text-b" maxlength="15" placeholder="e.g. HATE" autocomplete="off" spellcheck="false" />
+      </div>
     </div>
     <div id="length-warning" class="warning hidden">ADD HEARTS TO BALANCE THE LETTERS IN BOTH NAMES</div>
     <div class="panel-section pad-controls">
@@ -37,28 +39,22 @@ export function createInputPanel(container, callbacks) {
         <button class="pad-btn" data-pad="after" data-dir="1">+</button>
       </div>
     </div>
-    <div class="panel-section">
-      <label for="order-number">Order Number</label>
-      <input type="text" id="order-number" maxlength="30" placeholder="e.g. 1001" autocomplete="off" spellcheck="false" />
-    </div>
-    <div class="panel-section">
-      <label for="inscription-text">Text on base</label>
-      <input type="text" id="inscription-text" maxlength="60" placeholder="e.g. Made with love / بحبك" autocomplete="off" spellcheck="false" />
-    </div>
-    <div class="panel-actions">
+    <div class="btn-row">
       <button id="btn-generate" class="btn-primary">Generate</button>
-      <button id="btn-download" class="btn-secondary" disabled>Download STL</button>
+      <button id="btn-download" class="btn-download" disabled>Download STL</button>
     </div>
 
-    <div class="batch-separator"></div>
-
-    <div class="panel-actions">
-      <button id="btn-batch" class="btn-primary">Generate from Google Sheet</button>
-    </div>
-    <div id="batch-progress" class="batch-progress hidden">
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-      <span id="batch-status" class="batch-status"></span>
-    </div>
+    <details class="panel-details">
+      <summary>Order Details</summary>
+      <div class="panel-section">
+        <label for="order-number">Order Number</label>
+        <input type="text" id="order-number" maxlength="30" placeholder="e.g. 1001" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="panel-section">
+        <label for="inscription-text">Text on base</label>
+        <input type="text" id="inscription-text" maxlength="60" placeholder="e.g. Made with love / بحبك" autocomplete="off" spellcheck="false" />
+      </div>
+    </details>
 
     <details class="panel-details">
       <summary>Advanced</summary>
@@ -85,6 +81,16 @@ export function createInputPanel(container, callbacks) {
         <button id="btn-copy-debug" class="btn-secondary">Copy Debug</button>
       </div>
     </details>
+
+    <div class="batch-separator"></div>
+
+    <div class="panel-actions">
+      <button id="btn-batch" class="btn-secondary">Generate from Google Sheet</button>
+    </div>
+    <div id="batch-progress" class="batch-progress hidden">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <span id="batch-status" class="batch-status"></span>
+    </div>
   `;
 
   // Elements
