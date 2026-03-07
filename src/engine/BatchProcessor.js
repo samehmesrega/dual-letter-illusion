@@ -84,19 +84,20 @@ export async function processBatch(sheetUrl, options, onProgress) {
     throw new Error('Sheet has no data rows (need header + at least 1 row).');
   }
 
-  // Skip header row
-  const dataRows = allRows.slice(1).filter(row => row[0] && row[1]);
+  // Skip header row — columns: Order number, Name 1, Name 2, Text on base
+  const dataRows = allRows.slice(1).filter(row => row[1] && row[2]);
 
   if (dataRows.length === 0) {
-    throw new Error('No valid rows found. Each row needs Side A and Side B.');
+    throw new Error('No valid rows found. Each row needs Order number, Name 1, and Name 2.');
   }
 
+  const safe = (s) => s.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_');
   const total = dataRows.length;
   const zip = new JSZip();
 
   for (let i = 0; i < total; i++) {
     await new Promise(r => setTimeout(r, 0)); // yield to main thread for UI updates
-    const [textA, textB, inscription] = dataRows[i];
+    const [orderNum, textA, textB, inscription] = dataRows[i];
     onProgress(i + 1, total, `Generating ${textA} + ${textB}...`);
 
     try {
@@ -113,7 +114,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
       });
 
       const blob = exportToSTLBlob(model);
-      const filename = `DualName_${textA}_${textB}.stl`;
+      const filename = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}.stl`;
       zip.file(filename, blob);
 
       // Dispose geometries to free memory
