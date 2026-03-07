@@ -1,5 +1,7 @@
 import { FONT_FILE } from '../fonts/curated-fonts.js';
 
+const BATCH_SHEET_URL = 'https://docs.google.com/spreadsheets/d/19qQRLE1jzPR9Obtf4e8kcMdap_3GP32NotlntD38aKk/edit?gid=0#gid=0';
+
 /**
  * Create the input panel UI with text inputs, font picker, size slider, and buttons.
  *
@@ -23,18 +25,6 @@ export function createInputPanel(container, callbacks) {
     </div>
     <div id="length-warning" class="warning hidden">ADD HEARTS TO BALANCE THE LETTERS IN BOTH NAMES</div>
     <div class="panel-section">
-      <label for="font-size">Size: <span id="size-value">72</span></label>
-      <input type="range" id="font-size" min="36" max="144" value="72" step="1" />
-    </div>
-    <div class="panel-section">
-      <label for="corner-radius">Fillet: <span id="radius-value">5</span> mm</label>
-      <input type="range" id="corner-radius" min="5" max="50" value="5" step="1" />
-    </div>
-    <div class="panel-section">
-      <label for="base-thickness">Base Thickness: <span id="thickness-value">2</span> mm</label>
-      <input type="range" id="base-thickness" min="1" max="5" value="2" step="0.5" />
-    </div>
-    <div class="panel-section">
       <label for="order-number">Order Number</label>
       <input type="text" id="order-number" maxlength="30" placeholder="e.g. 1001" autocomplete="off" spellcheck="false" />
     </div>
@@ -46,23 +36,42 @@ export function createInputPanel(container, callbacks) {
       <button id="btn-generate" class="btn-primary">Generate</button>
       <button id="btn-download" class="btn-secondary" disabled>Download STL</button>
     </div>
-    <div class="panel-actions">
-      <button id="btn-wireframe" class="btn-secondary">Wireframe: OFF</button>
-    </div>
 
     <div class="batch-separator"></div>
 
-    <div class="panel-section">
-      <label for="sheet-url">Google Sheet URL</label>
-      <input type="url" id="sheet-url" placeholder="Paste Google Sheets link" autocomplete="off" />
-    </div>
     <div class="panel-actions">
-      <button id="btn-batch" class="btn-primary">Generate from Sheet</button>
+      <button id="btn-batch" class="btn-primary">Generate from Google Sheet</button>
     </div>
     <div id="batch-progress" class="batch-progress hidden">
       <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
       <span id="batch-status" class="batch-status"></span>
     </div>
+
+    <details class="panel-details">
+      <summary>Advanced</summary>
+      <div class="panel-section">
+        <label for="font-size">Size: <span id="size-value">72</span></label>
+        <input type="range" id="font-size" min="36" max="144" value="72" step="1" />
+      </div>
+      <div class="panel-section">
+        <label for="corner-radius">Fillet: <span id="radius-value">5</span> mm</label>
+        <input type="range" id="corner-radius" min="5" max="50" value="5" step="1" />
+      </div>
+      <div class="panel-section">
+        <label for="base-thickness">Base Thickness: <span id="thickness-value">2</span> mm</label>
+        <input type="range" id="base-thickness" min="1" max="5" value="2" step="0.5" />
+      </div>
+    </details>
+
+    <details class="panel-details">
+      <summary>Debug</summary>
+      <div class="panel-actions">
+        <button id="btn-wireframe" class="btn-secondary">Wireframe: OFF</button>
+      </div>
+      <div class="panel-actions">
+        <button id="btn-copy-debug" class="btn-secondary">Copy Debug</button>
+      </div>
+    </details>
   `;
 
   // Elements
@@ -131,7 +140,7 @@ export function createInputPanel(container, callbacks) {
   });
 
   const btnWireframe = container.querySelector('#btn-wireframe');
-  const sheetUrlInput = container.querySelector('#sheet-url');
+  const btnCopyDebug = container.querySelector('#btn-copy-debug');
   const btnBatch = container.querySelector('#btn-batch');
   const batchProgress = container.querySelector('#batch-progress');
   const progressFill = container.querySelector('#progress-fill');
@@ -146,13 +155,18 @@ export function createInputPanel(container, callbacks) {
     if (callbacks.onWireframeToggle) callbacks.onWireframeToggle(wireframeOn);
   });
   btnBatch.addEventListener('click', () => {
-    if (callbacks.onBatchGenerate) callbacks.onBatchGenerate(sheetUrlInput.value.trim());
+    if (callbacks.onBatchGenerate) callbacks.onBatchGenerate(BATCH_SHEET_URL);
   });
   copyHeartBtn.addEventListener('click', () => {
     navigator.clipboard.writeText('\u2665').then(() => {
       copyHeartBtn.classList.add('copied');
       setTimeout(() => copyHeartBtn.classList.remove('copied'), 800);
     });
+  });
+
+  // Copy Debug button wired up externally via onCopyDebug callback
+  btnCopyDebug.addEventListener('click', () => {
+    if (callbacks.onCopyDebug) callbacks.onCopyDebug(btnCopyDebug);
   });
 
   return {
@@ -183,7 +197,7 @@ export function createInputPanel(container, callbacks) {
     },
     setBatchLoading(on) {
       btnBatch.disabled = on;
-      btnBatch.textContent = on ? 'Processing...' : 'Generate from Sheet';
+      btnBatch.textContent = on ? 'Processing...' : 'Generate from Google Sheet';
       if (!on) batchProgress.classList.add('hidden');
     }
   };

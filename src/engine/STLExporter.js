@@ -1,6 +1,18 @@
+import * as THREE from 'three';
 import { STLExporter as ThreeSTLExporter } from 'three/addons/exporters/STLExporter.js';
 
 const exporter = new ThreeSTLExporter();
+
+/**
+ * Clone the group and rotate from Three.js Y-up to slicer Z-up,
+ * so the base plate sits flat on the slicer bed.
+ */
+function prepareForSlicer(group) {
+  const clone = group.clone(true);
+  clone.rotateX(Math.PI / 2);
+  clone.updateMatrixWorld(true);
+  return clone;
+}
 
 /**
  * Export a THREE.Group as a binary STL file and trigger browser download.
@@ -9,7 +21,8 @@ const exporter = new ThreeSTLExporter();
  * @param {string} [filename='dual-letter-illusion.stl'] - Download filename
  */
 export function exportToSTL(group, filename = 'dual-letter-illusion.stl') {
-  const stlData = exporter.parse(group, { binary: true });
+  const exportGroup = prepareForSlicer(group);
+  const stlData = exporter.parse(exportGroup, { binary: true });
   const blob = new Blob([stlData], { type: 'application/octet-stream' });
   const url = URL.createObjectURL(blob);
 
@@ -29,6 +42,7 @@ export function exportToSTL(group, filename = 'dual-letter-illusion.stl') {
  * @returns {Blob}
  */
 export function exportToSTLBlob(group) {
-  const stlData = exporter.parse(group, { binary: true });
+  const exportGroup = prepareForSlicer(group);
+  const stlData = exporter.parse(exportGroup, { binary: true });
   return new Blob([stlData], { type: 'application/octet-stream' });
 }

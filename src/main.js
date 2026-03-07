@@ -27,7 +27,8 @@ const inputPanel = createInputPanel(document.getElementById('input-panel'), {
   onGenerate: handleGenerate,
   onDownload: handleDownload,
   onWireframeToggle: handleWireframeToggle,
-  onBatchGenerate: handleBatchGenerate
+  onBatchGenerate: handleBatchGenerate,
+  onCopyDebug: handleCopyDebug
 });
 
 const previewPanel = createPreviewPanel(document.getElementById('preview-panel'));
@@ -125,15 +126,9 @@ function handleWireframeToggle(on) {
   });
 }
 
-// --- Copy Debug button ---
-const debugBtn = document.createElement('button');
-debugBtn.textContent = 'Copy Debug';
-debugBtn.className = 'btn-secondary';
-debugBtn.style.marginTop = '8px';
-debugBtn.addEventListener('click', () => {
+function handleCopyDebug(btn) {
   let output = debugLog.join('\n');
 
-  // Add current model stats
   if (state.currentModel) {
     output += '\n\n=== CURRENT MODEL MESHES ===';
     state.currentModel.traverse(child => {
@@ -152,17 +147,10 @@ debugBtn.addEventListener('click', () => {
   }
 
   navigator.clipboard.writeText(output).then(() => {
-    debugBtn.textContent = 'Copied!';
-    setTimeout(() => { debugBtn.textContent = 'Copy Debug'; }, 1500);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy Debug'; }, 1500);
   });
-});
-
-// Append to input panel
-const panel = document.getElementById('input-panel');
-const actionsDiv = document.createElement('div');
-actionsDiv.className = 'panel-actions';
-actionsDiv.appendChild(debugBtn);
-panel.appendChild(actionsDiv);
+}
 
 // --- Mobile tab toggle ---
 function setupMobileTabs() {

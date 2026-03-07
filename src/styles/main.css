@@ -299,6 +299,36 @@ body {
   cursor: not-allowed;
 }
 
+/* ── Collapsible sections ── */
+.panel-details {
+  margin-top: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.panel-details summary {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #888);
+  user-select: none;
+}
+
+.panel-details summary:hover {
+  color: var(--color-text, #fff);
+}
+
+.panel-details[open] summary {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.panel-details .panel-section,
+.panel-details .panel-actions {
+  padding: 4px 12px;
+}
+
 /* ── Batch Section ── */
 .batch-separator {
   border-top: 1px solid var(--color-border);
