@@ -251,7 +251,7 @@ export async function buildAmbigram(options) {
       if (orderResult) {
         const { shape, bounds } = orderResult;
         const textW = bounds.maxX - bounds.minX;
-        const targetW = 40; // 4 cm
+        const targetW = 100; // 10 cm
         const scaleFactor = textW > 0 ? targetW / textW : 1;
         const cx = (bounds.minX + bounds.maxX) / 2;
         const cy = (bounds.minY + bounds.maxY) / 2;
