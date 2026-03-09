@@ -1,5 +1,5 @@
 /**
- * Minimal customer-facing UI: two name inputs, heart copy, length warning, generate button.
+ * Minimal customer-facing UI: two name inputs, length warning, generate button.
  *
  * @param {HTMLElement} container
  * @param {Object} callbacks
@@ -11,12 +11,11 @@ export function createCustomerPanel(container, callbacks) {
     <div class="customer-inputs">
       <div class="customer-input-group">
         <label for="name1">Name 1</label>
-        <input type="text" id="name1" maxlength="15" placeholder="e.g. LOVE" autocomplete="off" spellcheck="false" />
+        <input type="text" id="name1" maxlength="15" placeholder="e.g. JAMES" autocomplete="off" spellcheck="false" />
       </div>
-      <button class="customer-heart-btn" title="Copy heart symbol ♥">&#x2665;</button>
       <div class="customer-input-group">
         <label for="name2">Name 2</label>
-        <input type="text" id="name2" maxlength="15" placeholder="e.g. HATE" autocomplete="off" spellcheck="false" />
+        <input type="text" id="name2" maxlength="15" placeholder="e.g. SARAH" autocomplete="off" spellcheck="false" />
       </div>
     </div>
     <div class="customer-warning" id="length-warning">Add hearts ♥ to balance the letters in both names</div>
@@ -25,7 +24,6 @@ export function createCustomerPanel(container, callbacks) {
 
   const name1Input = container.querySelector('#name1');
   const name2Input = container.querySelector('#name2');
-  const heartBtn = container.querySelector('.customer-heart-btn');
   const btnGenerate = container.querySelector('#btn-generate');
   const lengthWarning = container.querySelector('#length-warning');
 
@@ -49,13 +47,6 @@ export function createCustomerPanel(container, callbacks) {
   name2Input.addEventListener('keydown', onEnterKey);
 
   btnGenerate.addEventListener('click', () => callbacks.onGenerate());
-
-  heartBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText('\u2665').then(() => {
-      heartBtn.style.transform = 'scale(1.3)';
-      setTimeout(() => { heartBtn.style.transform = ''; }, 300);
-    });
-  });
 
   return {
     getNames() {
