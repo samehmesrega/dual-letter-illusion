@@ -9,19 +9,6 @@ import { jscadToThree } from './JscadToThree.js';
  * JSCAD roundedRectangle → extrudeLinear → jscadToThree.
  * Guarantees a solid, watertight mesh — bypasses Three.js cap triangulation.
  */
-function buildRoundedPlateGeo(W, D, H, r) {
-  // JSCAD 2D rounded rectangle in XY plane
-  const plate2d = primitives.roundedRectangle({ size: [W, D], roundRadius: r, segments: 32 });
-  // Extrude along Z
-  const plate3d = extrusions.extrudeLinear({ height: H }, plate2d);
-  // Center in Z: shift from [0, H] to [-H/2, H/2]
-  const centered = transforms.translate([0, 0, -H / 2], plate3d);
-  // Convert to Three.js BufferGeometry (same converter used for letter meshes)
-  const geo = jscadToThree(centered);
-  // JSCAD works in XY+Z; we need plate in XZ with Y as height → rotate -90° on X
-  geo.rotateX(-Math.PI / 2);
-  return geo;
-}
 
 export const debugLog = [];
 function dbg(msg) { debugLog.push(msg); console.log(msg); }
@@ -243,9 +230,48 @@ export async function buildAmbigram(options) {
 
     const r = Math.min(cornerRadius, totalW / 2, totalD / 2);
 
-    const baseGeo = r > 0
-      ? buildRoundedPlateGeo(totalW, totalD, baseHeight, r)
-      : new THREE.BoxGeometry(totalW, baseHeight, totalD);
+    // Build base as JSCAD shape (XY plane, extruded along Z)
+    const basePlate2d = r > 0
+      ? primitives.roundedRectangle({ size: [totalW, totalD], roundRadius: r, segments: 32 })
+      : primitives.rectangle({ size: [totalW, totalD] });
+    let basePlate3d = extrusions.extrudeLinear({ height: baseHeight }, basePlate2d);
+    basePlate3d = transforms.translate([0, 0, -baseHeight / 2], basePlate3d);
+
+    // ── Order number: CSG subtract from base ──
+    const orderTrimmed = (orderNumber || '').toString().trim();
+    if (orderTrimmed) {
+      dbg(`\n--- ORDER NUMBER: "${orderTrimmed}" ---`);
+      const orderFont = inscriptionFontUrl ? await loadFont(inscriptionFontUrl) : font;
+      const orderFontSize = 8;
+      const orderExtrudeH = 1; // 1 mm engrave depth
+
+      const orderResult = textToJSCAD(orderFont, orderTrimmed, orderFontSize);
+      getGlyphDebugLog(); // clear log
+
+      if (orderResult) {
+        const { shape, bounds } = orderResult;
+        const cx = (bounds.minX + bounds.maxX) / 2;
+        const cy = (bounds.minY + bounds.maxY) / 2;
+        // Center text, mirror X so it reads correctly when flipped
+        let orderShape = transforms.translate([-cx, -cy, 0], shape);
+        orderShape = transforms.mirrorX(orderShape);
+        // Extrude and position at bottom of base plate (Z = -baseHeight/2)
+        let orderSolid = extrusions.extrudeLinear({ height: orderExtrudeH }, orderShape);
+        orderSolid = transforms.translate([0, 0, -baseHeight / 2], orderSolid);
+
+        try {
+          basePlate3d = booleans.subtract(basePlate3d, orderSolid);
+          dbg(`  order number engraved into base bottom`);
+        } catch (e) {
+          dbg(`  order number CSG subtract failed: ${e.message}`);
+        }
+      }
+    }
+
+    // Convert JSCAD base to Three.js geometry
+    const baseGeo = jscadToThree(basePlate3d);
+    // JSCAD XY+Z → Three.js XZ+Y: rotate -90° on X
+    baseGeo.rotateX(-Math.PI / 2);
 
     const base = new THREE.Mesh(
       baseGeo,
@@ -258,48 +284,6 @@ export async function buildAmbigram(options) {
     base.position.z = baseZCenter;
     base.name = 'base_plate';
     group.add(base);
-
-    // ── Order number engraved on bottom of base ──
-    const orderTrimmed = (orderNumber || '').toString().trim();
-    if (orderTrimmed) {
-      dbg(`\n--- ORDER NUMBER: "${orderTrimmed}" ---`);
-      const orderFont = inscriptionFontUrl ? await loadFont(inscriptionFontUrl) : font;
-      const orderFontSize = 8;
-      const orderExtrudeH = 1; // 1 mm depth
-
-      const orderResult = textToJSCAD(orderFont, orderTrimmed, orderFontSize);
-      getGlyphDebugLog(); // clear log
-
-      if (orderResult) {
-        const { shape, bounds } = orderResult;
-        const cx = (bounds.minX + bounds.maxX) / 2;
-        const cy = (bounds.minY + bounds.maxY) / 2;
-        const centeredShape = transforms.translate([-cx, -cy, 0], shape);
-
-        const extruded = extrusions.extrudeLinear({ height: orderExtrudeH }, centeredShape);
-        const geo = jscadToThree(extruded);
-        // Mirror X so text reads correctly when base is flipped,
-        // then rotate so text extrudes upward (+Y) into the base
-        geo.scale(-1, 1, 1);
-        geo.rotateX(Math.PI / 2);
-
-        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-          color: 0xc05a40, roughness: 0.5, metalness: 0.0, side: THREE.DoubleSide
-        }));
-
-        geo.computeBoundingBox();
-        const bbox = geo.boundingBox;
-        // Center on base plate
-        mesh.position.x = lettersCenterX - (bbox.max.x + bbox.min.x) / 2;
-        mesh.position.z = baseZCenter - (bbox.max.z + bbox.min.z) / 2;
-        // Engrave upward into base: bottom of text flush with base bottom
-        mesh.position.y = -maxHeight / 2 - baseHeight;
-
-        mesh.name = 'order_number';
-        group.add(mesh);
-        dbg(`  order number placed on base bottom`);
-      }
-    }
   }
 
   // Center the whole group
