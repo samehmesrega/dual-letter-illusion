@@ -54,11 +54,11 @@
   /* ── Iframe ── */
   #dual-name-customizer #dn-iframe {
     width: 100%;
-    height: 520px;
-    border: none;
+    height: 480px;
+    border: 1px solid #e2e8f0;
     border-radius: 14px;
-    background: linear-gradient(145deg, #1a1a2e, #16213e);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    background: linear-gradient(145deg, #f0f2f5, #e8ecf1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
   }
 
   /* ── Steps ── */
@@ -451,13 +451,7 @@
       state.selectedColor = colorName;
       colorsEl.querySelectorAll('.dn-swatch').forEach(function(s) { s.classList.remove('dn-selected'); });
       swatch.classList.add('dn-selected');
-
-      // Send color to iframe to update 3D model color
-      var hex = CONFIG.colorHex[colorName] || '#ccc';
-      var iframe = document.getElementById('dn-iframe');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ source: 'dual-name-parent', type: 'change-color', hex: hex }, '*');
-      }
+      sendColorToIframe();
     });
 
     var label = document.createElement('span');
@@ -524,10 +518,24 @@
   // ║  STEP NAVIGATION                                             ║
   // ╚═══════════════════════════════════════════════════════════════╝
 
-  // Preview ready → show color step
+  // Helper — send current color to iframe
+  function sendColorToIframe() {
+    var hex = CONFIG.colorHex[state.selectedColor] || '#ccc';
+    var iframe = document.getElementById('dn-iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ source: 'dual-name-parent', type: 'change-color', hex: hex }, '*');
+    }
+  }
+
+  // Listen for messages from iframe
   window.addEventListener('message', function(event) {
     var data = event.data;
     if (!data || data.source !== 'dual-name') return;
+
+    // Iframe loaded — send the initial selected color
+    if (data.type === 'iframe-ready') {
+      sendColorToIframe();
+    }
 
     if (data.type === 'preview-ready') {
       state.name1 = data.name1;
