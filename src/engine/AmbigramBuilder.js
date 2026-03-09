@@ -278,12 +278,13 @@ export async function buildAmbigram(options) {
 
         const extruded = extrusions.extrudeLinear({ height: orderExtrudeH }, centeredShape);
         const geo = jscadToThree(extruded);
-        // Text faces downward (-Y), mirrored on X so it reads correctly from below
+        // Mirror X so text reads correctly when base is flipped,
+        // then rotate so text extrudes upward (+Y) into the base
         geo.scale(-1, 1, 1);
-        geo.rotateX(-Math.PI / 2);
+        geo.rotateX(Math.PI / 2);
 
         const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-          color: 0xe8735a, roughness: 0.45, metalness: 0.0, side: THREE.DoubleSide
+          color: 0xc05a40, roughness: 0.5, metalness: 0.0, side: THREE.DoubleSide
         }));
 
         geo.computeBoundingBox();
@@ -291,8 +292,8 @@ export async function buildAmbigram(options) {
         // Center on base plate
         mesh.position.x = lettersCenterX - (bbox.max.x + bbox.min.x) / 2;
         mesh.position.z = baseZCenter - (bbox.max.z + bbox.min.z) / 2;
-        // Protrude below base: top of text flush with base bottom
-        mesh.position.y = -maxHeight / 2 - baseHeight - bbox.max.y;
+        // Engrave upward into base: bottom of text flush with base bottom
+        mesh.position.y = -maxHeight / 2 - baseHeight;
 
         mesh.name = 'order_number';
         group.add(mesh);
