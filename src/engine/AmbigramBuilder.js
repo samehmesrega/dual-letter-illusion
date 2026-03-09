@@ -250,10 +250,14 @@ export async function buildAmbigram(options) {
 
       if (orderResult) {
         const { shape, bounds } = orderResult;
+        const textW = bounds.maxX - bounds.minX;
+        const targetW = 40; // 4 cm
+        const scaleFactor = textW > 0 ? targetW / textW : 1;
         const cx = (bounds.minX + bounds.maxX) / 2;
         const cy = (bounds.minY + bounds.maxY) / 2;
-        // Center text, mirror X so it reads correctly when flipped
+        // Center text, scale to 4cm width, mirror X so it reads correctly when flipped
         let orderShape = transforms.translate([-cx, -cy, 0], shape);
+        orderShape = transforms.scale([scaleFactor, scaleFactor, 1], orderShape);
         orderShape = transforms.mirrorX(orderShape);
         // Extrude and position at bottom of base plate (Z = -baseHeight/2)
         let orderSolid = extrusions.extrudeLinear({ height: orderExtrudeH }, orderShape);
