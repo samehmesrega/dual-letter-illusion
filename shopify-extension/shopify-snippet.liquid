@@ -131,7 +131,7 @@
   /* ── Packing Cards ── */
   #dual-name-customizer .dn-packing-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin-bottom: 24px;
   }
@@ -341,24 +341,28 @@
     colorHex: {
       'Black':        '#1a1a1a',
       'White':        '#f5f5f5',
-      'Blue':         '#2563EB',
-      'Pink':         '#EC4899',
       'Yellow':       '#EAB308',
-      'Orange':       '#F97316',
-      'Purple':       '#9333EA',
       'Red':          '#EF4444',
-      'Silver':       '#9CA3AF',
-      'Green':        '#22C55E',
-      'Gray':         '#9CA3AF',
-      'Multi Colour': '#ccc'
+      'Orange':       '#F97316',
+      'Baby Pink':    '#F9A8D4',
+      'Sky Blue':     '#38BDF8',
+      'Multi Color':  '#ccc',
+      'Two Color':    '#ccc',
+      'Marble':       '#ccc',
+      'Phosphorus':   '#a3e635'
+    },
+
+    // Special swatches — CSS gradient backgrounds for multi-pattern colors
+    colorGradient: {
+      'Multi Color':  'conic-gradient(#EF4444, #EAB308, #22C55E, #2563EB, #9333EA, #EF4444)',
+      'Two Color':    'linear-gradient(135deg, #EF4444 50%, #2563EB 50%)',
+      'Marble':       'linear-gradient(135deg, #e2e8f0 25%, #94a3b8 25%, #94a3b8 50%, #e2e8f0 50%, #e2e8f0 75%, #94a3b8 75%)'
     },
 
     // Packing images — update these URLs after uploading to Shopify Files
-    // For now, these point to the Render-hosted images
     packingImages: {
-      'Cartoon Box':  'https://dna-si1n.onrender.com/images/packing/cartoon-box.jpg',
-      'Wooden Box':   'https://dna-si1n.onrender.com/images/packing/wooden-box.jpg',
-      'Acrylic Box':  'https://dna-si1n.onrender.com/images/packing/acrylic-box.jpg'
+      'Standard carton': 'https://dna-si1n.onrender.com/images/packing/cartoon-box.jpg',
+      'Luxury wooden':   'https://dna-si1n.onrender.com/images/packing/wooden-box.jpg'
     }
   };
 
@@ -444,7 +448,11 @@
 
     var swatch = document.createElement('div');
     swatch.className = 'dn-swatch' + (colorName === state.selectedColor ? ' dn-selected' : '');
-    swatch.style.backgroundColor = CONFIG.colorHex[colorName] || '#ccc';
+    if (CONFIG.colorGradient && CONFIG.colorGradient[colorName]) {
+      swatch.style.background = CONFIG.colorGradient[colorName];
+    } else {
+      swatch.style.backgroundColor = CONFIG.colorHex[colorName] || '#ccc';
+    }
     if (colorName.toLowerCase() === 'white') swatch.style.border = '2px solid #e2e8f0';
 
     swatch.addEventListener('click', function() {
@@ -535,6 +543,12 @@
     // Iframe loaded — send the initial selected color
     if (data.type === 'iframe-ready') {
       sendColorToIframe();
+    }
+
+    // Preview is regenerating — reset wizard to step 1
+    if (data.type === 'preview-loading') {
+      document.getElementById('dn-step-color').classList.add('dn-hidden');
+      document.getElementById('dn-step-packing').classList.add('dn-hidden');
     }
 
     if (data.type === 'preview-ready') {
