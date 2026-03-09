@@ -75,6 +75,7 @@ const panel = createCustomerPanel(document.getElementById('customer-controls'), 
 
 // State
 let currentModel = null;
+let currentColor = '#4361ee'; // default blue
 
 async function handleGenerate() {
   const { name1, name2 } = panel.getNames();
@@ -108,6 +109,7 @@ async function handleGenerate() {
     }
 
     currentModel = model;
+    changeModelColor(currentColor);
     ctx.scene.add(model);
     fitCameraToObject(ctx.camera, model, ctx.controls);
 
@@ -138,7 +140,7 @@ async function handleGenerate() {
     ctx.renderer.render(ctx.scene, ctx.camera);
     const screenshot = ctx.renderer.domElement.toDataURL('image/jpeg', 0.8);
 
-    notifyParent('preview-ready', { name1, name2, screenshot });
+    notifyParent('preview-ready', { name1, name2, color: currentColor, screenshot });
   } catch (err) {
     console.error('Generation failed:', err);
     showError('Failed to generate. Try different names.');
@@ -151,6 +153,7 @@ async function handleGenerate() {
 
 // Change model color — receives hex color from parent (Shopify snippet)
 function changeModelColor(hex) {
+  currentColor = hex;
   if (!currentModel) return;
   const color = new THREE.Color(hex);
   currentModel.traverse(child => {
