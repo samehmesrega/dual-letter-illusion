@@ -54,6 +54,8 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
       execFile('prusa-slicer', [
         '--export-gcode',
         '--load', profilePath,
+        '--support-material',
+        '--support-material-buildplate-only',
         '--scale-to-fit', '192x42x37',
         '--output', gcodePath,
         stlPath
