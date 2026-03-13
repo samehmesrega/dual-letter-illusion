@@ -5,7 +5,6 @@ import { readFile, unlink, readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
-import { randomUUID } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -75,8 +74,8 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
   }
 });
 
-// SPA fallback
-app.get('*', (_req, res) => {
+// SPA fallback (Express 5 syntax)
+app.get('/{*path}', (_req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
