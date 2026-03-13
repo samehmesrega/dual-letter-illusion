@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { createInputPanel } from './ui/InputPanel.js';
 import { createPreviewPanel } from './ui/PreviewPanel.js';
 import { buildAmbigram, debugLog } from './engine/AmbigramBuilder.js';
-import { exportToSTL } from './engine/STLExporter.js';
+import { exportToSTL, exportToSTLBlob } from './engine/STLExporter.js';
 import { processBatch } from './engine/BatchProcessor.js';
 import { FONT_FILE, INSCRIPTION_FONT } from './fonts/curated-fonts.js';
 
@@ -28,6 +28,7 @@ const inputPanel = createInputPanel(document.getElementById('input-panel'), {
   onChange: handleInputChange,
   onGenerate: handleGenerate,
   onDownload: handleDownload,
+  onDownloadGcode: handleDownloadGcode,
   onWireframeToggle: handleWireframeToggle,
   onBatchGenerate: handleBatchGenerate,
   onCopyDebug: handleCopyDebug
@@ -91,6 +92,43 @@ function handleDownload() {
   const orderPart = state.orderNumber ? `${safe(state.orderNumber)}-` : '';
   const filename = `DN-${orderPart}${safe(state.textA)}-${safe(state.textB)}.stl`;
   exportToSTL(state.currentModel, filename);
+}
+
+async function handleDownloadGcode(profile) {
+  if (!state.currentModel) return;
+
+  const safe = (s) => s.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_');
+  const orderPart = state.orderNumber ? `${safe(state.orderNumber)}-` : '';
+  const stlFilename = `DN-${orderPart}${safe(state.textA)}-${safe(state.textB)}.stl`;
+
+  // Get STL blob
+  const stlBlob = exportToSTLBlob(state.currentModel);
+
+  // Send to slicer API
+  const form = new FormData();
+  form.append('stl', stlBlob, stlFilename);
+  form.append('profile', profile || 'default');
+  form.append('filename', stlFilename);
+
+  inputPanel.setLoading(true);
+  try {
+    const res = await fetch('/api/slice', { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.details || 'Slicing failed');
+    }
+    const gcodeBlob = await res.blob();
+    const url = URL.createObjectURL(gcodeBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = stlFilename.replace(/\.stl$/i, '.gcode');
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('G-code download failed:', err);
+    previewPanel.showError('G-code slicing failed: ' + err.message);
+  }
+  inputPanel.setLoading(false);
 }
 
 async function handleBatchGenerate(sheetUrl) {

@@ -1,0 +1,85 @@
+import express from 'express';
+import multer from 'multer';
+import { execFile } from 'child_process';
+import { readFile, unlink, readdir } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const app = express();
+const upload = multer({ dest: tmpdir() });
+const PORT = process.env.PORT || 3001;
+
+// Slicer profiles directory
+const PROFILES_DIR = join(__dirname, 'slicer-profiles');
+
+// Serve built static files
+app.use(express.static(join(__dirname, 'dist')));
+
+// ── List available slicer profiles ──
+app.get('/api/profiles', async (_req, res) => {
+  try {
+    const files = await readdir(PROFILES_DIR);
+    const profiles = files
+      .filter(f => f.endsWith('.ini'))
+      .map(f => ({
+        id: f.replace('.ini', ''),
+        name: f.replace('.ini', '').replace(/_/g, ' ')
+      }));
+    res.json(profiles);
+  } catch {
+    res.json([]);
+  }
+});
+
+// ── Slice STL → G-code ──
+app.post('/api/slice', upload.single('stl'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No STL file uploaded' });
+
+  const profile = req.body.profile || 'default';
+  const profilePath = join(PROFILES_DIR, `${profile}.ini`);
+  const stlPath = req.file.path;
+  const gcodeFilename = req.body.filename
+    ? req.body.filename.replace(/\.stl$/i, '.gcode')
+    : 'output.gcode';
+  const gcodePath = stlPath + '.gcode';
+
+  try {
+    await new Promise((resolve, reject) => {
+      execFile('prusa-slicer', [
+        '--export-gcode',
+        '--load', profilePath,
+        '--output', gcodePath,
+        stlPath
+      ], { timeout: 120_000 }, (err, stdout, stderr) => {
+        if (err) reject(new Error(stderr || err.message));
+        else resolve(stdout);
+      });
+    });
+
+    const gcode = await readFile(gcodePath);
+    res.set({
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${gcodeFilename}"`
+    });
+    res.send(gcode);
+  } catch (err) {
+    console.error('Slice failed:', err.message);
+    res.status(500).json({ error: 'Slicing failed', details: err.message });
+  } finally {
+    // Cleanup temp files
+    unlink(stlPath).catch(() => {});
+    unlink(gcodePath).catch(() => {});
+  }
+});
+
+// SPA fallback
+app.get('*', (_req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

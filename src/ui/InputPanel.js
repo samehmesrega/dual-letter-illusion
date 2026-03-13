@@ -59,6 +59,13 @@ export function createInputPanel(container, callbacks) {
       <button id="btn-download" class="btn-download" disabled>Download STL</button>
     </div>
 
+    <div class="gcode-row">
+      <select id="slicer-profile" class="slicer-profile-select">
+        <option value="default">Default</option>
+      </select>
+      <button id="btn-gcode" class="btn-download btn-gcode" disabled>Download G-code</button>
+    </div>
+
     <div class="panel-actions">
       <button id="btn-batch" class="btn-secondary">Generate from Google Sheet</button>
     </div>
@@ -182,6 +189,8 @@ export function createInputPanel(container, callbacks) {
     emitChange();
   });
 
+  const btnGcode = container.querySelector('#btn-gcode');
+  const profileSelect = container.querySelector('#slicer-profile');
   const btnWireframe = container.querySelector('#btn-wireframe');
   const btnCopyDebug = container.querySelector('#btn-copy-debug');
   const btnBatch = container.querySelector('#btn-batch');
@@ -190,8 +199,22 @@ export function createInputPanel(container, callbacks) {
   const batchStatus = container.querySelector('#batch-status');
   let wireframeOn = false;
 
+  // Load slicer profiles
+  fetch('/api/profiles').then(r => r.json()).then(profiles => {
+    if (profiles.length) {
+      profileSelect.innerHTML = profiles
+        .map(p => `<option value="${p.id}">${p.name}</option>`)
+        .join('');
+    }
+  }).catch(() => {});
+
   btnGenerate.addEventListener('click', () => callbacks.onGenerate());
   btnDownload.addEventListener('click', () => callbacks.onDownload());
+  btnGcode.addEventListener('click', () => {
+    if (callbacks.onDownloadGcode) {
+      callbacks.onDownloadGcode(profileSelect.value);
+    }
+  });
   btnWireframe.addEventListener('click', () => {
     wireframeOn = !wireframeOn;
     btnWireframe.textContent = wireframeOn ? 'Wireframe: ON' : 'Wireframe: OFF';
@@ -234,6 +257,7 @@ export function createInputPanel(container, callbacks) {
     },
     enableDownload(enabled) {
       btnDownload.disabled = !enabled;
+      btnGcode.disabled = !enabled;
     },
     setBatchProgress(current, total, status) {
       batchProgress.classList.remove('hidden');

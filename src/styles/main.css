@@ -358,6 +358,41 @@ body {
   cursor: not-allowed;
 }
 
+/* ── G-code Row ── */
+.gcode-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.slicer-profile-select {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.btn-gcode {
+  flex: 1;
+  background: var(--color-primary);
+  box-shadow: 0 2px 6px rgba(67, 97, 238, 0.25);
+}
+
+.btn-gcode:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-gcode:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(67, 97, 238, 0.25);
+}
+
 /* Reset camera button */
 .btn-reset-camera {
   position: absolute;
