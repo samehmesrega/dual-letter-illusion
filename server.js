@@ -54,6 +54,7 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
       execFile('prusa-slicer', [
         '--export-gcode',
         '--load', profilePath,
+        '--scale-to-fit', '192x42x37',
         '--output', gcodePath,
         stlPath
       ], { timeout: 120_000 }, (err, stdout, stderr) => {
