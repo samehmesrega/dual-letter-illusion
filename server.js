@@ -55,9 +55,9 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
         '--export-gcode',
         '--load', profilePath,
         // Force support settings via CLI (overrides INI)
-        '--support-material', '1',
-        '--support-material-auto', '1',
-        '--support-material-buildplate-only', '1',
+        '--support-material',
+        '--support-material-auto',
+        '--support-material-buildplate-only',
         '--support-material-threshold', '0',
         '--support-material-pattern', 'rectilinear',
         '--support-material-interface-layers', '2',
