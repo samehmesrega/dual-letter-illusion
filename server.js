@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { execFile } from 'child_process';
-import { readFile, unlink, readdir } from 'fs/promises';
+import { readFile, rename, unlink, readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
@@ -39,13 +39,17 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
 
   const profile = req.body.profile || 'default';
   const profilePath = join(PROFILES_DIR, `${profile}.ini`);
-  const stlPath = req.file.path;
+  const rawPath = req.file.path;
+  const stlPath = rawPath + '.stl';
   const gcodeFilename = req.body.filename
     ? req.body.filename.replace(/\.stl$/i, '.gcode')
     : 'output.gcode';
-  const gcodePath = stlPath + '.gcode';
+  const gcodePath = rawPath + '.gcode';
 
   try {
+    // Rename temp file to .stl so PrusaSlicer recognizes the format
+    await rename(rawPath, stlPath);
+
     await new Promise((resolve, reject) => {
       execFile('prusa-slicer', [
         '--export-gcode',
@@ -69,6 +73,7 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     res.status(500).json({ error: 'Slicing failed', details: err.message });
   } finally {
     // Cleanup temp files
+    unlink(rawPath).catch(() => {});
     unlink(stlPath).catch(() => {});
     unlink(gcodePath).catch(() => {});
   }
