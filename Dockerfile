@@ -1,9 +1,11 @@
-FROM node:20-slim
+FROM node:20-bookworm
 
-# Install minimal deps + extract PrusaSlicer AppImage
+# Install PrusaSlicer with ALL required runtime libraries
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      wget ca-certificates libfuse2 && \
+      wget ca-certificates libfuse2 \
+      libgtk-3-0 libwebkit2gtk-4.0-37 libegl1 libxkbcommon0 \
+      libgl1 libglu1-mesa libx11-6 libxrender1 libxext6 && \
     wget -q -O /tmp/prusa.AppImage \
       "https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.8.1/PrusaSlicer-2.8.1%2Blinux-x64-older-distros-GTK3-202409181354.AppImage" && \
     chmod +x /tmp/prusa.AppImage && \
@@ -12,7 +14,7 @@ RUN apt-get update && \
     rm /tmp/prusa.AppImage && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create wrapper script that uses AppImage's bundled libraries
+# Wrapper: use AppImage bundled libs first, fall back to system
 RUN printf '#!/bin/sh\nexport LD_LIBRARY_PATH=/opt/prusaslicer/usr/lib:${LD_LIBRARY_PATH}\nexec /opt/prusaslicer/usr/bin/prusa-slicer "$@"\n' > /usr/local/bin/prusa-slicer && \
     chmod +x /usr/local/bin/prusa-slicer
 
