@@ -54,8 +54,15 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
       execFile('prusa-slicer', [
         '--export-gcode',
         '--load', profilePath,
-        '--support-material',
-        '--support-material-buildplate-only',
+        // Force support settings via CLI (overrides INI)
+        '--support-material', '1',
+        '--support-material-auto', '1',
+        '--support-material-buildplate-only', '1',
+        '--support-material-threshold', '0',
+        '--support-material-pattern', 'rectilinear',
+        '--support-material-interface-layers', '2',
+        '--support-material-contact-distance', '0.2',
+        '--support-material-spacing', '2',
         '--scale-to-fit', '192x42x37',
         '--output', gcodePath,
         stlPath
