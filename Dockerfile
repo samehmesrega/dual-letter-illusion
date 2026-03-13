@@ -16,15 +16,15 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Install dependencies
+# Install ALL dependencies (including devDependencies for vite build)
 COPY package.json package-lock.json ./
-RUN npm ci --production
+RUN npm ci
 
 # Copy app files
 COPY . .
 
-# Build frontend
-RUN npm run build
+# Build frontend, then remove devDependencies
+RUN npm run build && npm prune --production
 
 EXPOSE 3001
 
