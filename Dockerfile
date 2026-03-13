@@ -4,7 +4,8 @@ FROM node:20-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       wget ca-certificates libgl1 libglu1-mesa libgtk-3-0 \
-      libglib2.0-0 libx11-6 libxrender1 libxext6 libfuse2 && \
+      libglib2.0-0 libx11-6 libxrender1 libxext6 libfuse2 \
+      libegl1 libxkbcommon0 && \
     wget -q -O /tmp/prusa.AppImage \
       "https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.8.1/PrusaSlicer-2.8.1%2Blinux-x64-older-distros-GTK3-202409181354.AppImage" && \
     chmod +x /tmp/prusa.AppImage && \
