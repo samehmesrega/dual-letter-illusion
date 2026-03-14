@@ -7,7 +7,7 @@ RUN apt-get update && \
       libgtk-3-0 libwebkit2gtk-4.0-37 libegl1 libxkbcommon0 \
       libgl1 libglu1-mesa libx11-6 libxrender1 libxext6 && \
     wget -q -O /tmp/prusa.AppImage \
-      "https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.8.1/PrusaSlicer-2.8.1%2Blinux-x64-older-distros-GTK3-202409181354.AppImage" && \
+      "https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.7.4/PrusaSlicer-2.7.4%2Blinux-x64-GTK3-202404050928.AppImage" && \
     chmod +x /tmp/prusa.AppImage && \
     cd /tmp && ./prusa.AppImage --appimage-extract && \
     mv /tmp/squashfs-root /opt/prusaslicer && \
