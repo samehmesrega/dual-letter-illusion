@@ -22,7 +22,7 @@ app.get('/api/profiles', async (_req, res) => {
   try {
     const files = await readdir(PROFILES_DIR);
     const profiles = files
-      .filter(f => f.endsWith('.ini'))
+      .filter(f => f.endsWith('.ini') && !f.startsWith('support'))
       .map(f => ({
         id: f.replace('.ini', ''),
         name: f.replace('.ini', '').replace(/_/g, ' ')
@@ -51,18 +51,11 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     await rename(rawPath, stlPath);
 
     await new Promise((resolve, reject) => {
+      const supportPath = join(PROFILES_DIR, 'support-override.ini');
       execFile('prusa-slicer', [
         '--export-gcode',
         '--load', profilePath,
-        // Force support settings via CLI (overrides INI)
-        '--support-material',
-        '--support-material-auto',
-        '--support-material-buildplate-only',
-        '--support-material-threshold', '0',
-        '--support-material-pattern', 'rectilinear',
-        '--support-material-interface-layers', '2',
-        '--support-material-contact-distance', '0.2',
-        '--support-material-spacing', '2',
+        '--load', supportPath,
         '--scale-to-fit', '192x42x37',
         '--output', gcodePath,
         stlPath
