@@ -16,19 +16,19 @@ const PORT = process.env.PORT || 3001;
 // Slicer profiles directory
 const PROFILES_DIR = join(__dirname, 'slicer-profiles');
 
-// ── Google Drive upload (fire-and-forget) ──
+// ── Google Drive upload via OAuth2 refresh token ──
 const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 let driveClient = null;
 
-if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
   try {
-    const key = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    const auth = new google.auth.GoogleAuth({
-      credentials: key,
-      scopes: ['https://www.googleapis.com/auth/drive.file']
-    });
-    driveClient = google.drive({ version: 'v3', auth });
-    console.log('Google Drive upload enabled');
+    const oauth2 = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+    oauth2.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+    driveClient = google.drive({ version: 'v3', auth: oauth2 });
+    console.log('Google Drive upload enabled (OAuth2)');
   } catch (e) {
     console.warn('Google Drive setup failed:', e.message);
   }
