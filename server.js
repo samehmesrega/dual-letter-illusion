@@ -106,6 +106,7 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
         '--export-gcode',
         '--load', profilePath,
         '--load', supportPath,
+        '--center', '112.5,112.5',
         '--output', gcodePath,
         stlPath
       ], { timeout: 120_000 }, (err, stdout, stderr) => {
