@@ -2,9 +2,11 @@ import express from 'express';
 import multer from 'multer';
 import { execFile } from 'child_process';
 import { readFile, writeFile, rename, unlink, readdir } from 'fs/promises';
+import { createReadStream } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
+import { google } from 'googleapis';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -13,6 +15,37 @@ const PORT = process.env.PORT || 3001;
 
 // Slicer profiles directory
 const PROFILES_DIR = join(__dirname, 'slicer-profiles');
+
+// ── Google Drive upload (fire-and-forget) ──
+const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+let driveClient = null;
+
+if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+  try {
+    const key = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+    const auth = new google.auth.GoogleAuth({
+      credentials: key,
+      scopes: ['https://www.googleapis.com/auth/drive.file']
+    });
+    driveClient = google.drive({ version: 'v3', auth });
+    console.log('Google Drive upload enabled');
+  } catch (e) {
+    console.warn('Google Drive setup failed:', e.message);
+  }
+}
+
+async function uploadToDrive(filePath, filename) {
+  if (!driveClient || !DRIVE_FOLDER_ID) return;
+  try {
+    await driveClient.files.create({
+      requestBody: { name: filename, parents: [DRIVE_FOLDER_ID] },
+      media: { mimeType: 'application/octet-stream', body: createReadStream(filePath) }
+    });
+    console.log(`Uploaded to Drive: ${filename}`);
+  } catch (e) {
+    console.error('Drive upload failed:', e.message);
+  }
+}
 
 // ── Non-uniform scale binary STL to exact target dimensions (mm) ──
 async function scaleSTL(filePath, targetX, targetY, targetZ) {
@@ -114,6 +147,9 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
         else resolve(stdout);
       });
     });
+
+    // Upload to Google Drive (must finish before cleanup deletes the file)
+    await uploadToDrive(gcodePath, gcodeFilename);
 
     const gcode = await readFile(gcodePath);
     res.set({
