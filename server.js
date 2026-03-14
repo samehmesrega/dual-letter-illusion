@@ -50,13 +50,14 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     // Rename temp file to .stl so PrusaSlicer recognizes the format
     await rename(rawPath, stlPath);
 
+    const scaleY = req.body.hasInscription ? 50 : 42;
     await new Promise((resolve, reject) => {
       const supportPath = join(PROFILES_DIR, 'support-override.ini');
       execFile('prusa-slicer', [
         '--export-gcode',
         '--load', profilePath,
         '--load', supportPath,
-        '--scale-to-fit', '192x42x37',
+        '--scale-to-fit', `192x${scaleY}x37`,
         '--output', gcodePath,
         stlPath
       ], { timeout: 120_000 }, (err, stdout, stderr) => {

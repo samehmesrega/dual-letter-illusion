@@ -109,6 +109,7 @@ async function handleDownloadGcode(profile) {
   form.append('stl', stlBlob, stlFilename);
   form.append('profile', profile || 'default');
   form.append('filename', stlFilename);
+  if (state.inscriptionText) form.append('hasInscription', '1');
 
   inputPanel.setLoading(true);
   try {
