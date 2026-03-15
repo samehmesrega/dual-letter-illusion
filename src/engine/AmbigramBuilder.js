@@ -46,6 +46,7 @@ export async function buildAmbigram(options) {
 
   const group = new THREE.Group();
   let currentX = padBefore * slotWidth, maxHeight = 0, maxDepth = 0;
+  const letterMeshes = [];  // track meshes + their bbox.min.y for baseline alignment
 
   for (let i = 0; i < maxLen; i++) {
     const charA = a[i];
@@ -152,7 +153,13 @@ export async function buildAmbigram(options) {
     maxDepth  = Math.max(maxDepth,  rD);
 
     mesh.name = `pair_${charA}_${charB}`;
+    letterMeshes.push({ mesh, bboxMinY: bbox.min.y });
     group.add(mesh);
+  }
+
+  // Align all letters so their bottom touches the base plate top (-maxHeight/2)
+  for (const { mesh, bboxMinY } of letterMeshes) {
+    mesh.position.y = -maxHeight / 2 - bboxMinY;
   }
 
   // Add empty slots after letters
