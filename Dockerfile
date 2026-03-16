@@ -22,7 +22,7 @@ RUN printf '#!/bin/sh\nexport LD_LIBRARY_PATH=/opt/prusaslicer/usr/lib:${LD_LIBR
 
 # ── OrcaSlicer 2.3.0 ──
 RUN wget -q -O /tmp/orca.AppImage \
-      "https://github.com/SoftFever/OrcaSlicer/releases/download/v2.3.0/OrcaSlicer_Linux_V2.3.0.AppImage" && \
+      "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.3.0/OrcaSlicer_Linux_AppImage_V2.3.0.AppImage" && \
     chmod +x /tmp/orca.AppImage && \
     cd /tmp && ./orca.AppImage --appimage-extract && \
     mv /tmp/squashfs-root /opt/orcaslicer && \
@@ -42,9 +42,9 @@ RUN wget -q -O /tmp/super.AppImage \
 RUN printf '#!/bin/sh\nexport LD_LIBRARY_PATH=/opt/superslicer/usr/lib:${LD_LIBRARY_PATH}\nexec /opt/superslicer/usr/bin/superslicer "$@"\n' \
     > /usr/local/bin/superslicer && chmod +x /usr/local/bin/superslicer
 
-# ── BambuStudio 1.10.1.50 ──
+# ── BambuStudio 2.3.1.51 ──
 RUN wget -q -O /tmp/bambu.AppImage \
-      "https://github.com/bambulab/BambuStudio/releases/download/v01.10.01.50/Bambu_Studio_linux_ubuntu-v01.10.01.50.AppImage" && \
+      "https://github.com/bambulab/BambuStudio/releases/download/v02.03.01.51/Bambu_Studio_ubuntu-22.04_PR-8583.AppImage" && \
     chmod +x /tmp/bambu.AppImage && \
     cd /tmp && ./bambu.AppImage --appimage-extract && \
     mv /tmp/squashfs-root /opt/bambustudio && \
