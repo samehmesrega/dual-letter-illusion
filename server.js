@@ -37,16 +37,7 @@ const SLICERS = {
     name: 'OrcaSlicer',
     cmd: 'orca-slicer',
     profileExt: '.ini',
-    buildArgs(profilePath, supportPath, stlPath, gcodePath) {
-      return [
-        '--export-gcode',
-        '--load', profilePath,
-        '--load', supportPath,
-        '--center', '112.5,112.5',
-        '--output', gcodePath,
-        stlPath
-      ];
-    }
+    useSliceMode: true
   },
   'super-slicer': {
     name: 'SuperSlicer',
@@ -67,16 +58,7 @@ const SLICERS = {
     name: 'BambuStudio',
     cmd: 'bambu-studio',
     profileExt: '.ini',
-    buildArgs(profilePath, supportPath, stlPath, gcodePath) {
-      return [
-        '--export-gcode',
-        '--load', profilePath,
-        '--load', supportPath,
-        '--center', '112.5,112.5',
-        '--output', gcodePath,
-        stlPath
-      ];
-    }
+    useSliceMode: true
   },
   'cura': {
     name: 'Cura',
@@ -149,9 +131,41 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
     });
   }
 
-  // PrusaSlicer-fork slicers: .ini profiles
+  // .ini profile slicers
   const profilePath = join(slicerDir, `${profileName}.ini`);
   const supportPath = join(slicerDir, 'support-override.ini');
+
+  if (slicer.useSliceMode) {
+    // OrcaSlicer / BambuStudio: use --slice 0 + --outputdir
+    const outDir = dirname(gcodePath);
+    const args = [
+      '--slice', '0',
+      '--load-settings', profilePath,
+      '--load-settings', supportPath,
+      '--outputdir', outDir,
+      stlPath
+    ];
+
+    return new Promise((resolve, reject) => {
+      execFile(slicer.cmd, args, { timeout: 120_000 }, async (err, stdout, stderr) => {
+        if (err) return reject(new Error(stderr || err.message));
+        // Find the generated gcode file in output dir
+        try {
+          const files = await readdir(outDir);
+          const gcodeFile = files.find(f => f.endsWith('.gcode') && !f.startsWith('.'));
+          if (gcodeFile) {
+            const generatedPath = join(outDir, gcodeFile);
+            if (generatedPath !== gcodePath) {
+              await rename(generatedPath, gcodePath);
+            }
+          }
+        } catch {}
+        resolve(stdout);
+      });
+    });
+  }
+
+  // PrusaSlicer / SuperSlicer: use --export-gcode
   const args = slicer.buildArgs(profilePath, supportPath, stlPath, gcodePath);
 
   return new Promise((resolve, reject) => {
