@@ -60,7 +60,10 @@ RUN BAMBU_BIN=$(find /opt/bambustudio -name "bambu-studio" -o -name "BambuStudio
     > /usr/local/bin/bambu-studio && chmod +x /usr/local/bin/bambu-studio
 
 # ── CuraEngine (installed via apt above) ──
-# Binary at /usr/bin/CuraEngine, definitions at /usr/share/cura/resources/definitions/
+# Download fdmprinter.def.json (base definition required by CuraEngine)
+RUN mkdir -p /opt/cura-definitions && \
+    wget -q -O /opt/cura-definitions/fdmprinter.def.json \
+      "https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmprinter.def.json"
 
 WORKDIR /app
 
