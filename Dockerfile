@@ -56,8 +56,8 @@ RUN wget -q -O /tmp/bambu.AppImage \
     rm /tmp/bambu.AppImage
 
 RUN BAMBU_BIN=$(find /opt/bambustudio -name "bambu-studio" -o -name "BambuStudio" -o -name "bambu_studio" | grep -E 'bin/' | head -1) && \
-    BAMBU_LIB=$(dirname "$BAMBU_BIN")/../lib && \
-    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s:\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$BAMBU_LIB" "$BAMBU_BIN" \
+    BAMBU_LIBS=$(find /opt/bambustudio -type d -name "lib" | tr '\n' ':') && \
+    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$BAMBU_LIBS" "$BAMBU_BIN" \
     > /usr/local/bin/bambu-studio && chmod +x /usr/local/bin/bambu-studio
 
 # ── CuraEngine (installed via apt above) ──
