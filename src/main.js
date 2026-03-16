@@ -142,22 +142,68 @@ async function handleBatchGenerate(sheetUrl) {
   previewPanel.clearError();
 
   try {
-    await processBatch(sheetUrl, {
+    const report = await processBatch(sheetUrl, {
       fontUrl:            `/fonts/${state.fontFile}`,
       fontSize:           state.fontSize,
       cornerRadius:       state.cornerRadius,
       baseThickness:      state.baseThickness,
       heartStyle:         state.heartStyle,
-      inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`
+      inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`,
+      profile:            document.querySelector('#slicer-profile')?.value || 'default'
     }, (current, total, status) => {
       inputPanel.setBatchProgress(current, total, status);
     });
+
+    if (report && report.length > 0) showBatchReport(report);
   } catch (err) {
     console.error('Batch failed:', err);
     previewPanel.showError(err.message || 'Batch generation failed.');
   }
 
   inputPanel.setBatchLoading(false);
+}
+
+function showBatchReport(report) {
+  // Remove existing modal if any
+  document.querySelector('.batch-report-overlay')?.remove();
+
+  const success = report.filter(r => r.stl && r.gcode && r.drive);
+  const failed = report.filter(r => !(r.stl && r.gcode && r.drive));
+
+  let html = `<div class="batch-report-overlay">
+    <div class="batch-report-modal">
+      <h3>Batch Report</h3>
+      <div class="report-summary">
+        <span class="report-ok">${success.length} succeeded</span>
+        <span class="report-fail">${failed.length} failed</span>
+        <span class="report-total">/ ${report.length} total</span>
+      </div>
+      <table class="report-table">
+        <thead><tr>
+          <th>Order</th><th>Names</th><th>STL</th><th>G-code</th><th>Drive</th>
+        </tr></thead>
+        <tbody>`;
+
+  for (const r of report) {
+    const ok = '\u2705';
+    const no = '\u274C';
+    html += `<tr class="${r.stl && r.gcode && r.drive ? '' : 'report-row-fail'}">
+      <td>${r.order}</td>
+      <td>${r.textA} + ${r.textB}</td>
+      <td>${r.stl ? ok : no}</td>
+      <td>${r.gcode ? ok : no}</td>
+      <td>${r.drive ? ok : no}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table>
+      <button class="btn-primary report-close">Close</button>
+    </div></div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.querySelector('.report-close').addEventListener('click', () => {
+    document.querySelector('.batch-report-overlay').remove();
+  });
 }
 
 function handleWireframeToggle(on) {

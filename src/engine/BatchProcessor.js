@@ -55,12 +55,13 @@ function parseCSV(text) {
 }
 
 /**
- * Fetch rows from a Google Sheet, generate STLs, and download as ZIP.
+ * Fetch rows from a Google Sheet, generate STLs + G-code, upload to Drive,
+ * and download STLs as ZIP.
  *
  * @param {string} sheetUrl - Google Sheets URL
  * @param {Object} options - Font/size/radius/thickness settings
  * @param {Function} onProgress - Called with (current, total, status)
- * @returns {Promise<void>}
+ * @returns {Promise<Array>} report — per-order results
  */
 export async function processBatch(sheetUrl, options, onProgress) {
   // Extract sheet ID
@@ -94,12 +95,27 @@ export async function processBatch(sheetUrl, options, onProgress) {
   const safe = (s) => s.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_');
   const total = dataRows.length;
   const zip = new JSZip();
+  const report = [];
 
   for (let i = 0; i < total; i++) {
     await new Promise(r => setTimeout(r, 0)); // yield to main thread for UI updates
     const [orderNum, color, textA, textB, inscription, padBeforeStr, padAfterStr] = dataRows[i];
-    onProgress(i + 1, total, `Generating ${textA} + ${textB}...`);
+    const colorPart = color ? `-${safe(color)}` : '';
+    const filename = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}${colorPart}.stl`;
 
+    const entry = {
+      order: orderNum || String(i + 1),
+      textA,
+      textB,
+      stl: false,
+      gcode: false,
+      drive: false,
+      failedAt: null
+    };
+
+    // Step 1: Generate STL
+    onProgress(i + 1, total, `[${i + 1}/${total}] STL: ${textA} + ${textB}...`);
+    let blob;
     try {
       const model = await buildAmbigram({
         textA,
@@ -116,10 +132,9 @@ export async function processBatch(sheetUrl, options, onProgress) {
         padAfter:           parseInt(padAfterStr) || 0
       });
 
-      const blob = exportToSTLBlob(model);
-      const colorPart = color ? `-${safe(color)}` : '';
-      const filename = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}${colorPart}.stl`;
+      blob = exportToSTLBlob(model);
       zip.file(filename, blob);
+      entry.stl = true;
 
       // Dispose geometries to free memory
       model.traverse(child => {
@@ -129,11 +144,42 @@ export async function processBatch(sheetUrl, options, onProgress) {
         }
       });
     } catch (err) {
-      console.warn(`Skipped row ${i + 1} (${textA} + ${textB}): ${err.message}`);
+      console.warn(`STL failed row ${i + 1} (${textA} + ${textB}): ${err.message}`);
+      entry.failedAt = 'STL';
+      report.push(entry);
+      continue;
     }
+
+    // Step 2: Generate G-code + upload to Drive
+    onProgress(i + 1, total, `[${i + 1}/${total}] G-code: ${textA} + ${textB}...`);
+    try {
+      const form = new FormData();
+      form.append('stl', blob, filename);
+      form.append('profile', options.profile || 'default');
+      form.append('filename', filename);
+      if (inscription) form.append('hasInscription', '1');
+
+      const res = await fetch('/api/slice-and-upload', { method: 'POST', body: form });
+      if (!res.ok) throw new Error('Server error');
+
+      const result = await res.json();
+      entry.gcode = result.gcode;
+      entry.drive = result.drive;
+
+      if (!result.gcode) {
+        entry.failedAt = 'G-code';
+      } else if (!result.drive) {
+        entry.failedAt = 'Drive upload';
+      }
+    } catch (err) {
+      console.warn(`G-code failed row ${i + 1} (${textA} + ${textB}): ${err.message}`);
+      entry.failedAt = 'G-code';
+    }
+
+    report.push(entry);
   }
 
-  // Generate ZIP
+  // Generate ZIP of STLs
   onProgress(total, total, 'Creating ZIP...');
   const zipBlob = await zip.generateAsync({ type: 'blob' });
 
@@ -146,4 +192,5 @@ export async function processBatch(sheetUrl, options, onProgress) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 
   onProgress(total, total, 'Done!');
+  return report;
 }

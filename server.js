@@ -35,15 +35,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
 }
 
 async function uploadToDrive(filePath, filename) {
-  if (!driveClient || !DRIVE_FOLDER_ID) return;
+  if (!driveClient || !DRIVE_FOLDER_ID) return { success: false, reason: 'Drive not configured' };
   try {
     await driveClient.files.create({
       requestBody: { name: filename, parents: [DRIVE_FOLDER_ID] },
       media: { mimeType: 'application/octet-stream', body: createReadStream(filePath) }
     });
     console.log(`Uploaded to Drive: ${filename}`);
+    return { success: true };
   } catch (e) {
     console.error('Drive upload failed:', e.message);
+    return { success: false, reason: e.message };
   }
 }
 
@@ -162,6 +164,61 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     res.status(500).json({ error: 'Slicing failed', details: err.message });
   } finally {
     // Cleanup temp files
+    unlink(rawPath).catch(() => {});
+    unlink(stlPath).catch(() => {});
+    unlink(gcodePath).catch(() => {});
+  }
+});
+
+// ── Slice + Upload (for batch processing, returns JSON status) ──
+app.post('/api/slice-and-upload', upload.single('stl'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No STL file uploaded' });
+
+  const profile = req.body.profile || 'default';
+  const profilePath = join(PROFILES_DIR, `${profile}.ini`);
+  const rawPath = req.file.path;
+  const stlPath = rawPath + '.stl';
+  const gcodeFilename = req.body.filename
+    ? req.body.filename.replace(/\.stl$/i, '.gcode')
+    : 'output.gcode';
+  const gcodePath = rawPath + '.gcode';
+
+  const result = { gcode: false, drive: false, driveError: '' };
+
+  try {
+    await rename(rawPath, stlPath);
+
+    const targetX = 192, targetZ = 37;
+    const targetY = req.body.hasInscription ? 48 : 42;
+    await scaleSTL(stlPath, targetX, targetY, targetZ);
+
+    await new Promise((resolve, reject) => {
+      const supportPath = join(PROFILES_DIR, 'support-override.ini');
+      execFile('prusa-slicer', [
+        '--export-gcode',
+        '--load', profilePath,
+        '--load', supportPath,
+        '--center', '112.5,112.5',
+        '--output', gcodePath,
+        stlPath
+      ], { timeout: 120_000 }, (err, stdout, stderr) => {
+        if (err) reject(new Error(stderr || err.message));
+        else resolve(stdout);
+      });
+    });
+
+    result.gcode = true;
+
+    // Upload to Google Drive
+    const driveResult = await uploadToDrive(gcodePath, gcodeFilename);
+    result.drive = driveResult.success;
+    if (!driveResult.success) result.driveError = driveResult.reason || '';
+
+    res.json(result);
+  } catch (err) {
+    console.error('Slice failed:', err.message);
+    res.json(result); // gcode stays false
+  } finally {
     unlink(rawPath).catch(() => {});
     unlink(stlPath).catch(() => {});
     unlink(gcodePath).catch(() => {});
