@@ -6,7 +6,6 @@ RUN apt-get update && \
       wget ca-certificates libfuse2 \
       libgtk-3-0 libwebkit2gtk-4.0-37 libegl1 libxkbcommon0 \
       libgl1 libglu1-mesa libx11-6 libxrender1 libxext6 \
-      libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
       cura-engine && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -47,24 +46,16 @@ RUN SUPER_BIN=$(find /opt/superslicer -name "superslicer" -o -name "SuperSlicer"
     printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s:\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$SUPER_LIB" "$SUPER_BIN" \
     > /usr/local/bin/superslicer && chmod +x /usr/local/bin/superslicer
 
-# ── BambuStudio 2.3.1.51 ──
-RUN wget -q -O /tmp/bambu.AppImage \
-      "https://github.com/bambulab/BambuStudio/releases/download/v02.03.01.51/Bambu_Studio_ubuntu-22.04_PR-8583.AppImage" && \
-    chmod +x /tmp/bambu.AppImage && \
-    cd /tmp && ./bambu.AppImage --appimage-extract && \
-    mv /tmp/squashfs-root /opt/bambustudio && \
-    rm /tmp/bambu.AppImage
-
-RUN BAMBU_BIN=$(find /opt/bambustudio -name "bambu-studio" -o -name "BambuStudio" -o -name "bambu_studio" | grep -E 'bin/' | head -1) && \
-    BAMBU_LIBS=$(find /opt/bambustudio -type d -name "lib" | tr '\n' ':') && \
-    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$BAMBU_LIBS" "$BAMBU_BIN" \
-    > /usr/local/bin/bambu-studio && chmod +x /usr/local/bin/bambu-studio
+# ── BambuStudio — disabled (requires FFmpeg 7 / libavcodec.so.61 not in Bookworm) ──
+# To re-enable: need Ubuntu 24.04 base image or manual FFmpeg 7 build
 
 # ── CuraEngine (installed via apt above) ──
 # Download fdmprinter.def.json (base definition required by CuraEngine)
 RUN mkdir -p /opt/cura-definitions && \
     wget -q -O /opt/cura-definitions/fdmprinter.def.json \
-      "https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmprinter.def.json"
+      "https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmprinter.def.json" && \
+    wget -q -O /opt/cura-definitions/fdmextruder.def.json \
+      "https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmextruder.def.json"
 
 WORKDIR /app
 

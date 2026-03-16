@@ -54,12 +54,6 @@ const SLICERS = {
       ];
     }
   },
-  'bambu-studio': {
-    name: 'BambuStudio',
-    cmd: 'bambu-studio',
-    profileExt: '.ini',
-    useSliceMode: true
-  },
   'cura': {
     name: 'Cura',
     cmd: 'CuraEngine',
@@ -124,7 +118,10 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
     args.push('-s', 'mesh_position_x=112.5', '-s', 'mesh_position_y=112.5');
 
     return new Promise((resolve, reject) => {
-      execFile(slicer.cmd, args, { timeout: 120_000 }, (err, stdout, stderr) => {
+      execFile(slicer.cmd, args, {
+        timeout: 120_000,
+        env: { ...process.env, CURA_ENGINE_SEARCH_PATH: '/opt/cura-definitions' }
+      }, (err, stdout, stderr) => {
         if (err) reject(new Error(stderr || err.message));
         else resolve(stdout);
       });
