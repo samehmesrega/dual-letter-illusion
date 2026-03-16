@@ -137,11 +137,16 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
 
   if (slicer.useSliceMode) {
     // OrcaSlicer / BambuStudio: use --slice 0 + --outputdir
+    // Merge profile + support override into one temp file
     const outDir = dirname(gcodePath);
+    const mergedPath = stlPath + '.merged.ini';
+    const profileContent = await readFile(profilePath, 'utf8');
+    const supportContent = await readFile(supportPath, 'utf8');
+    await writeFile(mergedPath, profileContent + '\n' + supportContent);
+
     const args = [
       '--slice', '0',
-      '--load-settings', profilePath,
-      '--load-settings', supportPath,
+      '--load-settings', mergedPath,
       '--outputdir', outDir,
       stlPath
     ];
@@ -160,6 +165,7 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
             }
           }
         } catch {}
+        unlink(mergedPath).catch(() => {});
         resolve(stdout);
       });
     });
