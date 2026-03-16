@@ -6,6 +6,7 @@ RUN apt-get update && \
       wget ca-certificates libfuse2 \
       libgtk-3-0 libwebkit2gtk-4.0-37 libegl1 libxkbcommon0 \
       libgl1 libglu1-mesa libx11-6 libxrender1 libxext6 \
+      libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
       cura-engine && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
