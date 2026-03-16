@@ -132,7 +132,16 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
   if (slicerId === 'cura') {
     // Cura: read JSON profile and build -s flags
     const profilePath = join(slicerDir, `${profileName}.json`);
-    const printerDef = join(slicerDir, 'printer.def.json');
+    // Use system fdmprinter.def.json from apt package, fallback to our custom one
+    const systemDef = '/usr/share/cura/resources/definitions/fdmprinter.def.json';
+    const localDef = join(slicerDir, 'printer.def.json');
+    let printerDef;
+    try {
+      await readFile(systemDef);
+      printerDef = systemDef;
+    } catch {
+      printerDef = localDef;
+    }
     const profileData = JSON.parse(await readFile(profilePath, 'utf8'));
     const args = ['slice', '-j', printerDef, '-l', stlPath, '-o', gcodePath];
     for (const [key, value] of Object.entries(profileData.settings || {})) {
