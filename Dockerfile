@@ -28,7 +28,9 @@ RUN wget -q -O /tmp/orca.AppImage \
     mv /tmp/squashfs-root /opt/orcaslicer && \
     rm /tmp/orca.AppImage
 
-RUN printf '#!/bin/sh\nexport LD_LIBRARY_PATH=/opt/orcaslicer/usr/lib:${LD_LIBRARY_PATH}\nexec /opt/orcaslicer/usr/bin/orca-slicer "$@"\n' \
+RUN ORCA_BIN=$(find /opt/orcaslicer -name "orca-slicer" -o -name "OrcaSlicer" -o -name "orca_slicer" | grep -E 'bin/' | head -1) && \
+    ORCA_LIB=$(dirname "$ORCA_BIN")/../lib && \
+    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s:\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$ORCA_LIB" "$ORCA_BIN" \
     > /usr/local/bin/orca-slicer && chmod +x /usr/local/bin/orca-slicer
 
 # ── SuperSlicer 2.5.59.13 ──
@@ -39,7 +41,9 @@ RUN wget -q -O /tmp/super.AppImage \
     mv /tmp/squashfs-root /opt/superslicer && \
     rm /tmp/super.AppImage
 
-RUN printf '#!/bin/sh\nexport LD_LIBRARY_PATH=/opt/superslicer/usr/lib:${LD_LIBRARY_PATH}\nexec /opt/superslicer/usr/bin/superslicer "$@"\n' \
+RUN SUPER_BIN=$(find /opt/superslicer -name "superslicer" -o -name "SuperSlicer" -o -name "super-slicer" | grep -E 'bin/' | head -1) && \
+    SUPER_LIB=$(dirname "$SUPER_BIN")/../lib && \
+    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s:\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$SUPER_LIB" "$SUPER_BIN" \
     > /usr/local/bin/superslicer && chmod +x /usr/local/bin/superslicer
 
 # ── BambuStudio 2.3.1.51 ──
@@ -50,7 +54,9 @@ RUN wget -q -O /tmp/bambu.AppImage \
     mv /tmp/squashfs-root /opt/bambustudio && \
     rm /tmp/bambu.AppImage
 
-RUN printf '#!/bin/sh\nexport LD_LIBRARY_PATH=/opt/bambustudio/usr/lib:${LD_LIBRARY_PATH}\nexec /opt/bambustudio/usr/bin/bambu-studio "$@"\n' \
+RUN BAMBU_BIN=$(find /opt/bambustudio -name "bambu-studio" -o -name "BambuStudio" -o -name "bambu_studio" | grep -E 'bin/' | head -1) && \
+    BAMBU_LIB=$(dirname "$BAMBU_BIN")/../lib && \
+    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s:\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$BAMBU_LIB" "$BAMBU_BIN" \
     > /usr/local/bin/bambu-studio && chmod +x /usr/local/bin/bambu-studio
 
 # ── CuraEngine (installed via apt above) ──
