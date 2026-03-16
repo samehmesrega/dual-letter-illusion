@@ -16,6 +16,79 @@ const PORT = process.env.PORT || 3001;
 // Slicer profiles directory
 const PROFILES_DIR = join(__dirname, 'slicer-profiles');
 
+// ── Slicer configurations ──
+const SLICERS = {
+  'prusa-slicer': {
+    name: 'PrusaSlicer',
+    cmd: 'prusa-slicer',
+    profileExt: '.ini',
+    buildArgs(profilePath, supportPath, stlPath, gcodePath) {
+      return [
+        '--export-gcode',
+        '--load', profilePath,
+        '--load', supportPath,
+        '--center', '112.5,112.5',
+        '--output', gcodePath,
+        stlPath
+      ];
+    }
+  },
+  'orca-slicer': {
+    name: 'OrcaSlicer',
+    cmd: 'orca-slicer',
+    profileExt: '.ini',
+    buildArgs(profilePath, supportPath, stlPath, gcodePath) {
+      return [
+        '--export-gcode',
+        '--load', profilePath,
+        '--load', supportPath,
+        '--center', '112.5,112.5',
+        '--output', gcodePath,
+        stlPath
+      ];
+    }
+  },
+  'super-slicer': {
+    name: 'SuperSlicer',
+    cmd: 'superslicer',
+    profileExt: '.ini',
+    buildArgs(profilePath, supportPath, stlPath, gcodePath) {
+      return [
+        '--export-gcode',
+        '--load', profilePath,
+        '--load', supportPath,
+        '--center', '112.5,112.5',
+        '--output', gcodePath,
+        stlPath
+      ];
+    }
+  },
+  'bambu-studio': {
+    name: 'BambuStudio',
+    cmd: 'bambu-studio',
+    profileExt: '.ini',
+    buildArgs(profilePath, supportPath, stlPath, gcodePath) {
+      return [
+        '--export-gcode',
+        '--load', profilePath,
+        '--load', supportPath,
+        '--center', '112.5,112.5',
+        '--output', gcodePath,
+        stlPath
+      ];
+    }
+  },
+  'cura': {
+    name: 'Cura',
+    cmd: 'CuraEngine',
+    profileExt: '.json',
+    buildArgs(profilePath, _supportPath, stlPath, gcodePath) {
+      // Cura uses -s key=value flags; read profile JSON and build args
+      return { profilePath, stlPath, gcodePath };
+    }
+  }
+};
+
 // ── Google Drive upload via OAuth2 refresh token ──
 const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 let driveClient = null;
@@ -47,6 +120,46 @@ async function uploadToDrive(filePath, filename) {
     console.error('Drive upload failed:', e.message);
     return { success: false, reason: e.message };
   }
+}
+
+// ── Run a slicer to produce G-code ──
+async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
+  const slicer = SLICERS[slicerId];
+  if (!slicer) throw new Error(`Unknown slicer: ${slicerId}`);
+
+  const slicerDir = join(PROFILES_DIR, slicerId);
+
+  if (slicerId === 'cura') {
+    // Cura: read JSON profile and build -s flags
+    const profilePath = join(slicerDir, `${profileName}.json`);
+    const printerDef = join(slicerDir, 'printer.def.json');
+    const profileData = JSON.parse(await readFile(profilePath, 'utf8'));
+    const args = ['slice', '-j', printerDef, '-l', stlPath, '-o', gcodePath];
+    for (const [key, value] of Object.entries(profileData.settings || {})) {
+      args.push('-s', `${key}=${value}`);
+    }
+    // Center the model
+    args.push('-s', 'mesh_position_x=112.5', '-s', 'mesh_position_y=112.5');
+
+    return new Promise((resolve, reject) => {
+      execFile(slicer.cmd, args, { timeout: 120_000 }, (err, stdout, stderr) => {
+        if (err) reject(new Error(stderr || err.message));
+        else resolve(stdout);
+      });
+    });
+  }
+
+  // PrusaSlicer-fork slicers: .ini profiles
+  const profilePath = join(slicerDir, `${profileName}.ini`);
+  const supportPath = join(slicerDir, 'support-override.ini');
+  const args = slicer.buildArgs(profilePath, supportPath, stlPath, gcodePath);
+
+  return new Promise((resolve, reject) => {
+    execFile(slicer.cmd, args, { timeout: 120_000 }, (err, stdout, stderr) => {
+      if (err) reject(new Error(stderr || err.message));
+      else resolve(stdout);
+    });
+  });
 }
 
 // ── Non-uniform scale binary STL to exact target dimensions (mm) ──
@@ -97,15 +210,27 @@ async function scaleSTL(filePath, targetX, targetY, targetZ) {
 // Serve built static files
 app.use(express.static(join(__dirname, 'dist')));
 
-// ── List available slicer profiles ──
-app.get('/api/profiles', async (_req, res) => {
+// ── List available slicers ──
+app.get('/api/slicers', (_req, res) => {
+  const list = Object.entries(SLICERS).map(([id, s]) => ({ id, name: s.name }));
+  res.json(list);
+});
+
+// ── List available profiles for a slicer ──
+app.get('/api/profiles', async (req, res) => {
+  const slicerId = req.query.slicer || 'prusa-slicer';
+  const slicer = SLICERS[slicerId];
+  if (!slicer) return res.json([]);
+
   try {
-    const files = await readdir(PROFILES_DIR);
+    const slicerDir = join(PROFILES_DIR, slicerId);
+    const files = await readdir(slicerDir);
+    const ext = slicer.profileExt;
     const profiles = files
-      .filter(f => f.endsWith('.ini') && !f.startsWith('support'))
+      .filter(f => f.endsWith(ext) && !f.startsWith('support') && !f.startsWith('printer'))
       .map(f => ({
-        id: f.replace('.ini', ''),
-        name: f.replace('.ini', '').replace(/_/g, ' ')
+        id: f.replace(ext, ''),
+        name: f.replace(ext, '').replace(/_/g, ' ')
       }));
     res.json(profiles);
   } catch {
@@ -117,8 +242,8 @@ app.get('/api/profiles', async (_req, res) => {
 app.post('/api/slice', upload.single('stl'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No STL file uploaded' });
 
+  const slicerId = req.body.slicer || 'prusa-slicer';
   const profile = req.body.profile || 'default';
-  const profilePath = join(PROFILES_DIR, `${profile}.ini`);
   const rawPath = req.file.path;
   const stlPath = rawPath + '.stl';
   const gcodeFilename = req.body.filename
@@ -127,28 +252,13 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
   const gcodePath = rawPath + '.gcode';
 
   try {
-    // Rename temp file to .stl so PrusaSlicer recognizes the format
     await rename(rawPath, stlPath);
 
-    // Non-uniform scale: read STL, compute per-axis factors, rewrite
     const targetX = 192, targetZ = 37;
     const targetY = req.body.hasInscription ? 48 : 42;
     await scaleSTL(stlPath, targetX, targetY, targetZ);
 
-    await new Promise((resolve, reject) => {
-      const supportPath = join(PROFILES_DIR, 'support-override.ini');
-      execFile('prusa-slicer', [
-        '--export-gcode',
-        '--load', profilePath,
-        '--load', supportPath,
-        '--center', '112.5,112.5',
-        '--output', gcodePath,
-        stlPath
-      ], { timeout: 120_000 }, (err, stdout, stderr) => {
-        if (err) reject(new Error(stderr || err.message));
-        else resolve(stdout);
-      });
-    });
+    await runSlicer(slicerId, profile, stlPath, gcodePath);
 
     // Upload to Google Drive (must finish before cleanup deletes the file)
     await uploadToDrive(gcodePath, gcodeFilename);
@@ -163,7 +273,6 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     console.error('Slice failed:', err.message);
     res.status(500).json({ error: 'Slicing failed', details: err.message });
   } finally {
-    // Cleanup temp files
     unlink(rawPath).catch(() => {});
     unlink(stlPath).catch(() => {});
     unlink(gcodePath).catch(() => {});
@@ -174,8 +283,8 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
 app.post('/api/slice-and-upload', upload.single('stl'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No STL file uploaded' });
 
+  const slicerId = req.body.slicer || 'prusa-slicer';
   const profile = req.body.profile || 'default';
-  const profilePath = join(PROFILES_DIR, `${profile}.ini`);
   const rawPath = req.file.path;
   const stlPath = rawPath + '.stl';
   const gcodeFilename = req.body.filename
@@ -192,20 +301,7 @@ app.post('/api/slice-and-upload', upload.single('stl'), async (req, res) => {
     const targetY = req.body.hasInscription ? 48 : 42;
     await scaleSTL(stlPath, targetX, targetY, targetZ);
 
-    await new Promise((resolve, reject) => {
-      const supportPath = join(PROFILES_DIR, 'support-override.ini');
-      execFile('prusa-slicer', [
-        '--export-gcode',
-        '--load', profilePath,
-        '--load', supportPath,
-        '--center', '112.5,112.5',
-        '--output', gcodePath,
-        stlPath
-      ], { timeout: 120_000 }, (err, stdout, stderr) => {
-        if (err) reject(new Error(stderr || err.message));
-        else resolve(stdout);
-      });
-    });
+    await runSlicer(slicerId, profile, stlPath, gcodePath);
 
     result.gcode = true;
 

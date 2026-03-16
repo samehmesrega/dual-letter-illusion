@@ -1,0 +1,24 @@
+{
+  "id": "elegoo_neptune4pro",
+  "name": "Elegoo Neptune 4 Pro",
+  "inherits": "fdmprinter",
+  "metadata": {
+    "visible": true,
+    "manufacturer": "Elegoo",
+    "file_formats": "text/x-gcode",
+    "machine_extruder_trains": { "0": "elegoo_neptune4pro_extruder" }
+  },
+  "overrides": {
+    "machine_name": { "default_value": "Elegoo Neptune 4 Pro" },
+    "machine_width": { "default_value": 225 },
+    "machine_depth": { "default_value": 225 },
+    "machine_height": { "default_value": 265 },
+    "machine_heated_bed": { "default_value": true },
+    "machine_nozzle_size": { "default_value": 0.4 },
+    "machine_head_with_fans_polygon": { "default_value": [[-30, 34], [-30, -32], [30, -32], [30, 34]] },
+    "gantry_height": { "default_value": 30 },
+    "machine_gcode_flavor": { "default_value": "RepRap (RepRap)" },
+    "machine_start_gcode": { "default_value": "START_PRINT EXTRUDER_TEMP={material_print_temperature_layer_0} BED_TEMP={material_bed_temperature_layer_0}" },
+    "machine_end_gcode": { "default_value": "END_PRINT" }
+  }
+}

@@ -365,6 +365,7 @@ body {
   margin-top: 6px;
 }
 
+.slicer-select,
 .slicer-profile-select {
   flex: 0 0 auto;
   padding: 10px 12px;

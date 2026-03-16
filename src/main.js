@@ -94,7 +94,7 @@ function handleDownload() {
   exportToSTL(state.currentModel, filename);
 }
 
-async function handleDownloadGcode(profile) {
+async function handleDownloadGcode(profile, slicer) {
   if (!state.currentModel) return;
 
   const safe = (s) => s.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_');
@@ -108,6 +108,7 @@ async function handleDownloadGcode(profile) {
   const form = new FormData();
   form.append('stl', stlBlob, stlFilename);
   form.append('profile', profile || 'default');
+  form.append('slicer', slicer || 'prusa-slicer');
   form.append('filename', stlFilename);
   if (state.inscriptionText) form.append('hasInscription', '1');
 
@@ -149,7 +150,8 @@ async function handleBatchGenerate(sheetUrl) {
       baseThickness:      state.baseThickness,
       heartStyle:         state.heartStyle,
       inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`,
-      profile:            document.querySelector('#slicer-profile')?.value || 'default'
+      profile:            document.querySelector('#slicer-profile')?.value || 'default',
+      slicer:             document.querySelector('#slicer-engine')?.value || 'prusa-slicer'
     }, (current, total, status) => {
       inputPanel.setBatchProgress(current, total, status);
     });
