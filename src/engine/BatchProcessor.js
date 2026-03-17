@@ -155,8 +155,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
     try {
       const form = new FormData();
       form.append('stl', blob, filename);
-      form.append('profile', options.profile || 'default');
-      form.append('slicer', options.slicer || 'prusa-slicer');
+      form.append('profile', options.profile || 'optimized');
       form.append('filename', filename);
       if (inscription) form.append('hasInscription', '1');
 

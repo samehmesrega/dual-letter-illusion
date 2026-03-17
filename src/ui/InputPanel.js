@@ -60,11 +60,8 @@ export function createInputPanel(container, callbacks) {
     </div>
 
     <div class="gcode-row">
-      <select id="slicer-engine" class="slicer-select">
-        <option value="prusa-slicer">PrusaSlicer</option>
-      </select>
       <select id="slicer-profile" class="slicer-profile-select">
-        <option value="default">Default</option>
+        <option value="optimized">optimized</option>
       </select>
       <button id="btn-gcode" class="btn-download btn-gcode" disabled>Download G-code</button>
     </div>
@@ -193,7 +190,6 @@ export function createInputPanel(container, callbacks) {
   });
 
   const btnGcode = container.querySelector('#btn-gcode');
-  const slicerSelect = container.querySelector('#slicer-engine');
   const profileSelect = container.querySelector('#slicer-profile');
   const btnWireframe = container.querySelector('#btn-wireframe');
   const btnCopyDebug = container.querySelector('#btn-copy-debug');
@@ -203,36 +199,20 @@ export function createInputPanel(container, callbacks) {
   const batchStatus = container.querySelector('#batch-status');
   let wireframeOn = false;
 
-  // Load profiles for selected slicer
-  function loadProfiles(slicerId) {
-    fetch(`/api/profiles?slicer=${slicerId}`).then(r => r.json()).then(profiles => {
-      if (profiles.length) {
-        profileSelect.innerHTML = profiles
-          .map(p => `<option value="${p.id}">${p.name}</option>`)
-          .join('');
-      }
-    }).catch(() => {});
-  }
-
-  // Load available slicers, then load profiles for the first one
-  fetch('/api/slicers').then(r => r.json()).then(slicers => {
-    if (slicers.length) {
-      slicerSelect.innerHTML = slicers
-        .map(s => `<option value="${s.id}">${s.name}</option>`)
+  // Load available profiles
+  fetch('/api/profiles').then(r => r.json()).then(profiles => {
+    if (profiles.length) {
+      profileSelect.innerHTML = profiles
+        .map(p => `<option value="${p.id}"${p.id === 'optimized' ? ' selected' : ''}>${p.name}</option>`)
         .join('');
-      loadProfiles(slicerSelect.value);
     }
   }).catch(() => {});
-
-  slicerSelect.addEventListener('change', () => {
-    loadProfiles(slicerSelect.value);
-  });
 
   btnGenerate.addEventListener('click', () => callbacks.onGenerate());
   btnDownload.addEventListener('click', () => callbacks.onDownload());
   btnGcode.addEventListener('click', () => {
     if (callbacks.onDownloadGcode) {
-      callbacks.onDownloadGcode(profileSelect.value, slicerSelect.value);
+      callbacks.onDownloadGcode(profileSelect.value);
     }
   });
   btnWireframe.addEventListener('click', () => {
