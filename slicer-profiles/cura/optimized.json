@@ -45,6 +45,9 @@
     "support_xy_distance": 0.5,
     "support_wall_count": 0,
     "adhesion_type": "none",
-    "machine_center_is_zero": false
+    "machine_center_is_zero": false,
+    "machine_width": 225,
+    "machine_depth": 225,
+    "machine_height": 265
   }
 }

@@ -37,6 +37,9 @@
     "skirt_line_count": 1,
     "skirt_gap": 3,
     "adhesion_type": "skirt",
-    "machine_center_is_zero": false
+    "machine_center_is_zero": false,
+    "machine_width": 225,
+    "machine_depth": 225,
+    "machine_height": 265
   }
 }

@@ -107,14 +107,19 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
 
   if (slicerId === 'cura') {
     // Cura: read JSON profile and build -s flags
+    // IMPORTANT: global settings must come BEFORE -l (model), per-mesh settings after -l
     const profilePath = join(slicerDir, `${profileName}.json`);
     const printerDef = '/opt/cura-definitions/fdmprinter.def.json';
     const profileData = JSON.parse(await readFile(profilePath, 'utf8'));
-    const args = ['slice', '-j', printerDef, '-l', stlPath, '-o', gcodePath];
+    const args = ['slice', '-j', printerDef, '-o', gcodePath];
+    // Machine dimensions (Elegoo Neptune 4 Pro)
+    args.push('-s', 'machine_width=225', '-s', 'machine_depth=225', '-s', 'machine_height=265');
+    // Global print settings from profile
     for (const [key, value] of Object.entries(profileData.settings || {})) {
       args.push('-s', `${key}=${value}`);
     }
-    // Center the model
+    // Load model, then per-mesh centering
+    args.push('-l', stlPath);
     args.push('-s', 'mesh_position_x=112.5', '-s', 'mesh_position_y=112.5');
 
     return new Promise((resolve, reject) => {
@@ -133,25 +138,39 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
   const supportPath = join(slicerDir, 'support-override.ini');
 
   if (slicer.useSliceMode) {
-    // OrcaSlicer: use --export-gcode with merged profile
+    // OrcaSlicer: use --slice 0 with merged profile
     const mergedPath = stlPath + '.merged.ini';
+    const outDir = dirname(gcodePath);
     const profileContent = await readFile(profilePath, 'utf8');
     const supportContent = await readFile(supportPath, 'utf8');
     await writeFile(mergedPath, profileContent + '\n' + supportContent);
 
     const args = [
-      '--export-gcode',
       '--load', mergedPath,
       '--center', '112.5,112.5',
+      '--slice', '0',
       '--output', gcodePath,
       stlPath
     ];
 
     return new Promise((resolve, reject) => {
-      execFile(slicer.cmd, args, { timeout: 120_000 }, (err, stdout, stderr) => {
+      execFile(slicer.cmd, args, { timeout: 120_000 }, async (err, stdout, stderr) => {
         unlink(mergedPath).catch(() => {});
-        if (err) reject(new Error(stderr || err.message));
-        else resolve(stdout);
+        if (err) {
+          // Fallback: check if gcode was generated in outDir with different name
+          try {
+            const files = await readdir(outDir);
+            const gcFile = files.find(f => f.endsWith('.gcode') && !f.startsWith('.'));
+            if (gcFile) {
+              const generatedPath = join(outDir, gcFile);
+              if (generatedPath !== gcodePath) {
+                await rename(generatedPath, gcodePath);
+              }
+              return resolve(stdout || '');
+            }
+          } catch {}
+          reject(new Error(stderr || err.message));
+        } else resolve(stdout);
       });
     });
   }
