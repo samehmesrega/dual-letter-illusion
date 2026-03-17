@@ -118,9 +118,8 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
     for (const [key, value] of Object.entries(profileData.settings || {})) {
       args.push('-s', `${key}=${value}`);
     }
-    // Load model, then per-mesh centering
+    // Load model (CuraEngine auto-centers on bed, scaleSTL already centered at origin)
     args.push('-l', stlPath);
-    args.push('-s', 'mesh_position_x=112.5', '-s', 'mesh_position_y=112.5');
 
     return new Promise((resolve, reject) => {
       execFile(slicer.cmd, args, {
@@ -155,7 +154,7 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
       execFile(slicer.cmd, args, { timeout: 120_000 }, async (err, stdout, stderr) => {
         if (err) {
           unlink(threemfPath).catch(() => {});
-          return reject(new Error(stderr || err.message));
+          return reject(new Error(stderr || stdout || err.message));
         }
         // Extract .gcode from the 3mf ZIP
         try {

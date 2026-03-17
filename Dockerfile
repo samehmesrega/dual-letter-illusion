@@ -3,7 +3,7 @@ FROM node:20-bookworm
 # ── System dependencies (shared by all AppImage-based slicers) ──
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      wget ca-certificates libfuse2 unzip \
+      wget ca-certificates libfuse2 unzip xvfb \
       libgtk-3-0 libwebkit2gtk-4.0-37 libegl1 libxkbcommon0 \
       libgl1 libglu1-mesa libx11-6 libxrender1 libxext6 \
       cura-engine && \
@@ -30,7 +30,7 @@ RUN wget -q -O /tmp/orca.AppImage \
 
 RUN ORCA_BIN=$(find /opt/orcaslicer -name "orca-slicer" -o -name "OrcaSlicer" -o -name "orca_slicer" | grep -E 'bin/' | head -1) && \
     ORCA_LIB=$(dirname "$ORCA_BIN")/../lib && \
-    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s:\${LD_LIBRARY_PATH}\nexec %s \"\$@\"\n" "$ORCA_LIB" "$ORCA_BIN" \
+    printf "#!/bin/sh\nexport LD_LIBRARY_PATH=%s:\${LD_LIBRARY_PATH}\nexec xvfb-run -a %s \"\$@\"\n" "$ORCA_LIB" "$ORCA_BIN" \
     > /usr/local/bin/orca-slicer && chmod +x /usr/local/bin/orca-slicer
 
 # ── SuperSlicer 2.5.59.13 ──
