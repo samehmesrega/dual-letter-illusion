@@ -133,37 +133,25 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
   const supportPath = join(slicerDir, 'support-override.ini');
 
   if (slicer.useSliceMode) {
-    // OrcaSlicer / BambuStudio: use --slice 0 + --outputdir
-    // Merge profile + support override into one temp file
-    const outDir = dirname(gcodePath);
+    // OrcaSlicer: use --export-gcode with merged profile
     const mergedPath = stlPath + '.merged.ini';
     const profileContent = await readFile(profilePath, 'utf8');
     const supportContent = await readFile(supportPath, 'utf8');
     await writeFile(mergedPath, profileContent + '\n' + supportContent);
 
     const args = [
-      '--slice', '0',
-      '--load-settings', mergedPath,
-      '--outputdir', outDir,
+      '--export-gcode',
+      '--load', mergedPath,
+      '--center', '112.5,112.5',
+      '--output', gcodePath,
       stlPath
     ];
 
     return new Promise((resolve, reject) => {
-      execFile(slicer.cmd, args, { timeout: 120_000 }, async (err, stdout, stderr) => {
-        if (err) return reject(new Error(stderr || err.message));
-        // Find the generated gcode file in output dir
-        try {
-          const files = await readdir(outDir);
-          const gcodeFile = files.find(f => f.endsWith('.gcode') && !f.startsWith('.'));
-          if (gcodeFile) {
-            const generatedPath = join(outDir, gcodeFile);
-            if (generatedPath !== gcodePath) {
-              await rename(generatedPath, gcodePath);
-            }
-          }
-        } catch {}
+      execFile(slicer.cmd, args, { timeout: 120_000 }, (err, stdout, stderr) => {
         unlink(mergedPath).catch(() => {});
-        resolve(stdout);
+        if (err) reject(new Error(stderr || err.message));
+        else resolve(stdout);
       });
     });
   }

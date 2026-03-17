@@ -44,7 +44,6 @@
     "support_z_distance": 0.3,
     "support_xy_distance": 0.5,
     "support_wall_count": 0,
-    "small_area_infill_flow_compensation": false,
     "adhesion_type": "none",
     "machine_center_is_zero": false
   }

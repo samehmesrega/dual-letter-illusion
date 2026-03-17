@@ -50,12 +50,12 @@ RUN SUPER_BIN=$(find /opt/superslicer -name "superslicer" -o -name "SuperSlicer"
 # To re-enable: need Ubuntu 24.04 base image or manual FFmpeg 7 build
 
 # ── CuraEngine (installed via apt above) ──
-# Download fdmprinter.def.json (base definition required by CuraEngine)
+# Download fdmprinter.def.json matching CuraEngine 4.13 (Bookworm apt version)
 RUN mkdir -p /opt/cura-definitions && \
     wget -q -O /opt/cura-definitions/fdmprinter.def.json \
-      "https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmprinter.def.json" && \
+      "https://raw.githubusercontent.com/Ultimaker/Cura/4.13/resources/definitions/fdmprinter.def.json" && \
     wget -q -O /opt/cura-definitions/fdmextruder.def.json \
-      "https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmextruder.def.json"
+      "https://raw.githubusercontent.com/Ultimaker/Cura/4.13/resources/definitions/fdmextruder.def.json"
 
 WORKDIR /app
 
