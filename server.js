@@ -36,8 +36,8 @@ const SLICERS = {
   'orca-slicer': {
     name: 'OrcaSlicer',
     cmd: 'orca-slicer',
-    profileExt: '.ini',
-    useSliceMode: true
+    profileExt: '.json',
+    useOrcaMode: true
   },
   'super-slicer': {
     name: 'SuperSlicer',
@@ -133,47 +133,59 @@ async function runSlicer(slicerId, profileName, stlPath, gcodePath) {
     });
   }
 
-  // .ini profile slicers
-  const profilePath = join(slicerDir, `${profileName}.ini`);
-  const supportPath = join(slicerDir, 'support-override.ini');
-
-  if (slicer.useSliceMode) {
-    // OrcaSlicer: use --slice 0 with merged profile
-    const mergedPath = stlPath + '.merged.ini';
-    const outDir = dirname(gcodePath);
-    const profileContent = await readFile(profilePath, 'utf8');
-    const supportContent = await readFile(supportPath, 'utf8');
-    await writeFile(mergedPath, profileContent + '\n' + supportContent);
+  if (slicer.useOrcaMode) {
+    // OrcaSlicer: completely different CLI from PrusaSlicer
+    // Uses --load-settings "machine.json;process.json" --load-filaments "filament.json"
+    // Outputs .gcode.3mf (ZIP), need to extract .gcode from it
+    const machineJson = join(slicerDir, 'machine.json');
+    const processJson = join(slicerDir, `${profileName}.json`);
+    const filamentJson = join(slicerDir, 'filament.json');
+    const threemfPath = stlPath + '.output.3mf';
 
     const args = [
-      '--load', mergedPath,
-      '--center', '112.5,112.5',
+      '--load-settings', `${machineJson};${processJson}`,
+      '--load-filaments', filamentJson,
       '--slice', '0',
-      '--output', gcodePath,
+      '--export-3mf', threemfPath,
+      '--arrange', '0',
       stlPath
     ];
 
     return new Promise((resolve, reject) => {
       execFile(slicer.cmd, args, { timeout: 120_000 }, async (err, stdout, stderr) => {
-        unlink(mergedPath).catch(() => {});
         if (err) {
-          // Fallback: check if gcode was generated in outDir with different name
-          try {
-            const files = await readdir(outDir);
-            const gcFile = files.find(f => f.endsWith('.gcode') && !f.startsWith('.'));
-            if (gcFile) {
-              const generatedPath = join(outDir, gcFile);
-              if (generatedPath !== gcodePath) {
-                await rename(generatedPath, gcodePath);
-              }
-              return resolve(stdout || '');
-            }
-          } catch {}
-          reject(new Error(stderr || err.message));
-        } else resolve(stdout);
+          unlink(threemfPath).catch(() => {});
+          return reject(new Error(stderr || err.message));
+        }
+        // Extract .gcode from the 3mf ZIP
+        try {
+          await new Promise((res, rej) => {
+            execFile('unzip', ['-o', '-j', threemfPath, '*.gcode', '-d', dirname(gcodePath)],
+              { timeout: 30_000 }, async (e, o, se) => {
+                if (e) return rej(new Error(se || e.message));
+                // Find extracted gcode and rename to expected path
+                const files = await readdir(dirname(gcodePath));
+                const gcFile = files.find(f => f.endsWith('.gcode') && !f.startsWith('.'));
+                if (gcFile) {
+                  const extractedPath = join(dirname(gcodePath), gcFile);
+                  if (extractedPath !== gcodePath) await rename(extractedPath, gcodePath);
+                }
+                res(o);
+              });
+          });
+          resolve(stdout);
+        } catch (extractErr) {
+          reject(new Error(`3MF extraction failed: ${extractErr.message}`));
+        } finally {
+          unlink(threemfPath).catch(() => {});
+        }
       });
     });
   }
+
+  // .ini profile slicers (PrusaSlicer / SuperSlicer)
+  const profilePath = join(slicerDir, `${profileName}.ini`);
+  const supportPath = join(slicerDir, 'support-override.ini');
 
   // PrusaSlicer / SuperSlicer: use --export-gcode
   const args = slicer.buildArgs(profilePath, supportPath, stlPath, gcodePath);
@@ -251,7 +263,7 @@ app.get('/api/profiles', async (req, res) => {
     const files = await readdir(slicerDir);
     const ext = slicer.profileExt;
     const profiles = files
-      .filter(f => f.endsWith(ext) && !f.startsWith('support') && !f.startsWith('printer'))
+      .filter(f => f.endsWith(ext) && !f.startsWith('support') && !f.startsWith('printer') && !f.startsWith('machine') && !f.startsWith('filament'))
       .map(f => ({
         id: f.replace(ext, ''),
         name: f.replace(ext, '').replace(/_/g, ' ')

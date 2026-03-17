@@ -3,7 +3,7 @@ FROM node:20-bookworm
 # ── System dependencies (shared by all AppImage-based slicers) ──
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      wget ca-certificates libfuse2 \
+      wget ca-certificates libfuse2 unzip \
       libgtk-3-0 libwebkit2gtk-4.0-37 libegl1 libxkbcommon0 \
       libgl1 libglu1-mesa libx11-6 libxrender1 libxext6 \
       cura-engine && \
