@@ -238,7 +238,7 @@
 
     for (var i = 0; i < allLabels.length; i++) {
       var label = allLabels[i];
-      var text = (label.textContent || '').trim().toLowerCase();
+      var text = (label.textContent || '').trim().toLowerCase().replace(/\*+$/, '').trim();
 
       if (text === 'name 1' || text === 'name1') {
         // Find the input associated with this label
