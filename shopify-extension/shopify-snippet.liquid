@@ -1,319 +1,218 @@
 <!-- ═══════════════════════════════════════════════════════════════
      Dual Name 3D Customizer — Shopify Product Page Snippet
-     3-Step Wizard: Preview → Color → Packing → Add to Cart
+     Preview Button + Modal: reads APO Name inputs → 3D preview
 
      HOW TO USE:
      1. In Shopify Admin → Online Store → Themes → Customize
      2. On your product page template, add a "Custom Liquid" block
      3. Paste this entire file into the Custom Liquid block
      4. Set EMBED_URL below to your deployed customer.html URL
-     5. Upload packing images to Shopify Files and update the URLs below
 
      VARIANT MATCHING:
      Variants must be "Color / Packing" combos, e.g. "Black / Cartoon Box"
      ═══════════════════════════════════════════════════════════════ -->
 
-<div id="dual-name-customizer">
+<!-- Preview 3D Button — placed inline on product page -->
+<button id="dn-preview-btn" class="dn-preview-btn" type="button">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+  Preview 3D
+</button>
 
-  <!-- Step 1: 3D Preview -->
-  <div class="dn-step" id="dn-step-preview">
-    <iframe id="dn-iframe" src="" allow="autoplay" loading="lazy"></iframe>
-  </div>
-
-  <!-- Step 2: Color (hidden until preview ready) -->
-  <div class="dn-step dn-hidden" id="dn-step-color">
-    <h3 class="dn-step-title">Choose Your Color</h3>
-    <div id="dn-colors" class="dn-color-grid"></div>
-    <button id="dn-next-packing" class="dn-btn-primary">Continue to Packing</button>
-  </div>
-
-  <!-- Step 3: Packing + Price + Cart (hidden until color chosen) -->
-  <div class="dn-step dn-hidden" id="dn-step-packing">
-    <h3 class="dn-step-title">Choose Your Packing</h3>
-    <div id="dn-packing" class="dn-packing-grid"></div>
-
-    <div class="dn-price-row">
-      <span class="dn-price-label">Total</span>
-      <span id="dn-price" class="dn-price"></span>
+<!-- Modal overlay -->
+<div id="dn-modal-overlay" class="dn-modal-overlay dn-hidden">
+  <div class="dn-modal">
+    <div class="dn-modal-header">
+      <span class="dn-modal-title">3D Preview</span>
+      <button id="dn-modal-close" class="dn-modal-close" type="button">&times;</button>
     </div>
-
-    <div id="dn-unavailable" class="dn-unavailable">This combination is currently unavailable</div>
-    <button id="dn-add-to-cart" class="dn-btn-primary">Add to Cart</button>
-    <button id="dn-back-color" class="dn-btn-back">&larr; Back to Color</button>
+    <div class="dn-modal-body">
+      <iframe id="dn-iframe" src="" allow="autoplay" loading="lazy"></iframe>
+      <div id="dn-modal-loading" class="dn-modal-loading">
+        <div class="dn-spinner"></div>
+        <span>Generating your 3D preview...</span>
+      </div>
+    </div>
+    <div id="dn-modal-names" class="dn-modal-names"></div>
   </div>
-
 </div>
 
 <style>
-  /* ── Base — matches PickedIN theme ── */
-  #dual-name-customizer {
-    max-width: 100%;
-    font-family: Poppins, sans-serif;
-    color: #121212;
-  }
-  #dual-name-customizer .dn-hidden { display: none !important; }
-
-  /* ── Iframe ── */
-  #dual-name-customizer #dn-iframe {
-    width: 100%;
-    height: 480px;
-    border: 1px solid #e5e5e5;
-    border-radius: 0;
-    background: #f5f5f5;
-    box-shadow: none;
-  }
-
-  /* ── Steps ── */
-  #dual-name-customizer .dn-step {
-    margin-bottom: 20px;
-    padding: 0 16px;
-    animation: dnFadeIn 0.35s ease;
-  }
-
-  #dual-name-customizer .dn-step#dn-step-preview {
-    padding: 0;
-  }
-
-  @keyframes dnFadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  #dual-name-customizer .dn-step-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #121212;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #EC5677;
-    letter-spacing: 0.06rem;
-  }
-
-  /* ── Color Swatches ── */
-  #dual-name-customizer .dn-color-grid {
+  /* ── Preview Button ── */
+  .dn-preview-btn {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  #dual-name-customizer .dn-swatch-wrap {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 5px;
-  }
-
-  #dual-name-customizer .dn-swatch {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 2px solid #e5e5e5;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: none;
-  }
-
-  #dual-name-customizer .dn-swatch:hover {
-    transform: scale(1.1);
-    border-color: #121212;
-  }
-
-  #dual-name-customizer .dn-swatch.dn-selected {
-    border-color: #121212;
-    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #121212;
-    transform: scale(1.05);
-  }
-
-  #dual-name-customizer .dn-swatch-label {
-    display: block;
-    text-align: center;
-    font-size: 10px;
-    font-weight: 400;
-    color: #666;
-    letter-spacing: 0.06rem;
-    text-transform: capitalize;
-  }
-
-  /* ── Packing Cards ── */
-  #dual-name-customizer .dn-packing-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  #dual-name-customizer .dn-packing-card {
-    border: 1px solid #e5e5e5;
-    border-radius: 0;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    margin-top: 10px;
     background: #fff;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    overflow: hidden;
-    text-align: center;
-  }
-
-  #dual-name-customizer .dn-packing-card:hover {
-    border-color: #121212;
-  }
-
-  #dual-name-customizer .dn-packing-card.dn-selected {
-    border-color: #121212;
-    border-width: 2px;
-  }
-
-  #dual-name-customizer .dn-packing-card img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    display: block;
-  }
-
-  #dual-name-customizer .dn-packing-card .dn-packing-info {
-    padding: 12px 10px;
-  }
-
-  #dual-name-customizer .dn-packing-card .dn-packing-name {
-    font-size: 14px;
-    font-weight: 700;
     color: #121212;
-  }
-
-  #dual-name-customizer .dn-packing-card .dn-packing-price {
-    font-size: 12px;
-    color: #666;
-    margin-top: 2px;
-    font-weight: 400;
-  }
-
-  /* ── Buttons — PickedIN accent color ── */
-  #dual-name-customizer .dn-btn-primary {
-    width: 100%;
-    padding: 16px;
-    background: #EC5677;
-    color: #fff;
-    border: 1px solid #EC5677;
+    border: 2px solid #121212;
     border-radius: 0;
     font-family: Poppins, sans-serif;
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    letter-spacing: 0.06rem;
+    letter-spacing: 0.04rem;
     text-transform: uppercase;
   }
 
-  #dual-name-customizer .dn-btn-primary:hover {
-    background: #d94466;
-    border-color: #d94466;
+  .dn-preview-btn:hover {
+    background: #121212;
+    color: #fff;
   }
 
-  #dual-name-customizer .dn-btn-primary:disabled {
+  .dn-preview-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  #dual-name-customizer .dn-btn-back {
-    width: 100%;
-    padding: 12px;
-    background: #fff;
-    color: #121212;
-    border: 1px solid #e5e5e5;
-    border-radius: 0;
-    font-family: Poppins, sans-serif;
-    font-size: 13px;
-    font-weight: 400;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: all 0.2s ease;
-    letter-spacing: 0.06rem;
-  }
-
-  #dual-name-customizer .dn-btn-back:hover {
-    border-color: #121212;
-    color: #121212;
-  }
-
-  /* ── Price ── */
-  #dual-name-customizer .dn-price-row {
+  /* ── Modal Overlay ── */
+  .dn-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 99999;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
-    border-top: 1px solid #e5e5e5;
-    margin-top: 8px;
+    justify-content: center;
+    padding: 20px;
+    animation: dnFadeIn 0.25s ease;
   }
 
-  #dual-name-customizer .dn-price-label {
-    font-size: 14px;
-    font-weight: 400;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.06rem;
+  .dn-modal-overlay.dn-hidden {
+    display: none !important;
   }
 
-  #dual-name-customizer .dn-price {
-    font-size: 24px;
+  @keyframes dnFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── Modal Box ── */
+  .dn-modal {
+    background: #fff;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    border-radius: 0;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    animation: dnSlideUp 0.3s ease;
+  }
+
+  @keyframes dnSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Modal Header ── */
+  .dn-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .dn-modal-title {
+    font-family: Poppins, sans-serif;
+    font-size: 16px;
     font-weight: 700;
     color: #121212;
+    letter-spacing: 0.04rem;
   }
 
-  /* ── Unavailable ── */
-  #dual-name-customizer .dn-unavailable {
-    color: #EC5677;
+  .dn-modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .dn-modal-close:hover {
+    color: #121212;
+  }
+
+  /* ── Modal Body (iframe) ── */
+  .dn-modal-body {
+    position: relative;
+    width: 100%;
+    height: 420px;
+  }
+
+  .dn-modal-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+
+  /* ── Loading state inside modal ── */
+  .dn-modal-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(245, 245, 245, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 5;
+  }
+
+  .dn-modal-loading.dn-hidden { display: none; }
+
+  .dn-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(0,0,0,0.08);
+    border-top-color: #EC5677;
+    border-radius: 50%;
+    animation: dnSpin 0.7s linear infinite;
+  }
+
+  @keyframes dnSpin { to { transform: rotate(360deg); } }
+
+  .dn-modal-loading span {
+    font-family: Poppins, sans-serif;
     font-size: 13px;
-    font-weight: 400;
-    margin-bottom: 10px;
-    display: none;
-    padding: 8px 12px;
-    background: rgba(236, 86, 119, 0.06);
-    border-radius: 0;
-    border-left: 3px solid #EC5677;
+    color: #666;
+    letter-spacing: 0.04rem;
   }
 
-  #dual-name-customizer .dn-unavailable.active { display: block; }
+  /* ── Names display ── */
+  .dn-modal-names {
+    padding: 12px 20px;
+    border-top: 1px solid #e5e5e5;
+    font-family: Poppins, sans-serif;
+    font-size: 14px;
+    color: #121212;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.06rem;
+    text-transform: uppercase;
+  }
 
   /* ── Mobile ── */
   @media (max-width: 600px) {
-    #dual-name-customizer #dn-iframe {
-      height: 380px;
-    }
-
-    #dual-name-customizer .dn-swatch {
-      width: 38px;
-      height: 38px;
-    }
-
-    #dual-name-customizer .dn-packing-grid {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-
-    #dual-name-customizer .dn-packing-card {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      text-align: left;
-    }
-
-    #dual-name-customizer .dn-packing-card img {
-      width: 100px;
-      height: 80px;
-      flex-shrink: 0;
-    }
-
-    #dual-name-customizer .dn-packing-card .dn-packing-info {
-      padding: 10px 14px;
-    }
-
-    #dual-name-customizer .dn-price {
-      font-size: 20px;
-    }
-
-    #dual-name-customizer .dn-btn-primary {
-      font-size: 14px;
-      padding: 14px;
-    }
+    .dn-modal-overlay { padding: 10px; }
+    .dn-modal { max-height: 90vh; }
+    .dn-modal-body { height: 340px; }
+    .dn-preview-btn { font-size: 14px; padding: 12px 16px; }
   }
 </style>
 
@@ -325,295 +224,173 @@
   // ║  CONFIGURATION                                               ║
   // ╚═══════════════════════════════════════════════════════════════╝
 
-  var CONFIG = {
-    embedUrl: 'https://dna-si1n.onrender.com/customer.html',
-
-    // Hex colors for swatches — must match Shopify variant option1 names
-    colorHex: {
-      'Black':        '#1a1a1a',
-      'White':        '#f5f5f5',
-      'Yellow':       '#EAB308',
-      'Red':          '#EF4444',
-      'Orange':       '#F97316',
-      'Baby Pink':    '#F9A8D4',
-      'Sky Blue':     '#38BDF8',
-      'Multi Color':  '#ccc',
-      'Two Color':    '#ccc',
-      'Marble':       '#ccc',
-      'Phosphorus':   '#a3e635'
-    },
-
-    // Special swatches — CSS gradient backgrounds for multi-pattern colors
-    colorGradient: {
-      'Multi Color':  'conic-gradient(#EF4444, #EAB308, #22C55E, #2563EB, #9333EA, #EF4444)',
-      'Two Color':    'linear-gradient(135deg, #EF4444 50%, #2563EB 50%)',
-      'Marble':       'linear-gradient(135deg, #e2e8f0 25%, #94a3b8 25%, #94a3b8 50%, #e2e8f0 50%, #e2e8f0 75%, #94a3b8 75%)'
-    },
-
-    // Packing images — update these URLs after uploading to Shopify Files
-    packingImages: {
-      'Standard carton': 'https://dna-si1n.onrender.com/images/packing/cartoon-box.jpg',
-      'Luxury wooden':   'https://dna-si1n.onrender.com/images/packing/wooden-box.jpg'
-    }
-  };
+  var EMBED_URL = 'https://dual-letter-illusion.onrender.com/customer.html';
 
   // ╔═══════════════════════════════════════════════════════════════╗
-  // ║  READ PRODUCT VARIANTS FROM SHOPIFY                          ║
+  // ║  FIND APO NAME INPUTS                                        ║
   // ╚═══════════════════════════════════════════════════════════════╝
 
-  var productData = null;
-  try {
-    productData = {{ product | json }};
-  } catch (e) {
-    console.error('Dual Name: Could not read product data.');
-  }
-  if (!productData) return;
+  function findNameInputs() {
+    // APO creates inputs dynamically — find them by label text
+    var allLabels = document.querySelectorAll('label');
+    var name1Input = null;
+    var name2Input = null;
 
-  var variants = productData.variants || [];
-  var colorsSet = {};
-  var packingSet = {};
-  var variantMap = {};
+    for (var i = 0; i < allLabels.length; i++) {
+      var label = allLabels[i];
+      var text = (label.textContent || '').trim().toLowerCase();
 
-  variants.forEach(function(v) {
-    var color = v.option1;
-    var packing = v.option2;
-    if (color) colorsSet[color] = true;
-    if (packing) packingSet[packing] = true;
-    variantMap[(color || '') + ' / ' + (packing || '')] = v;
-  });
-
-  var colors = Object.keys(colorsSet);
-  var packingOptions = Object.keys(packingSet);
-  if (colors.length === 0) return;
-
-  // ╔═══════════════════════════════════════════════════════════════╗
-  // ║  STATE                                                       ║
-  // ╚═══════════════════════════════════════════════════════════════╝
-
-  var state = {
-    name1: '', name2: '', screenshot: '',
-    selectedColor: colors[0],
-    selectedPacking: packingOptions[0] || ''
-  };
-
-  function getSelectedVariant() {
-    return variantMap[state.selectedColor + ' / ' + state.selectedPacking] || null;
-  }
-
-  function formatPrice(cents) {
-    return '$' + (cents / 100).toFixed(2);
-  }
-
-  function updatePrice() {
-    var variant = getSelectedVariant();
-    var priceEl = document.getElementById('dn-price');
-    var unavailableEl = document.getElementById('dn-unavailable');
-    var cartBtn = document.getElementById('dn-add-to-cart');
-
-    if (variant && variant.available) {
-      priceEl.textContent = formatPrice(variant.price);
-      unavailableEl.classList.remove('active');
-      cartBtn.disabled = false;
-    } else if (variant) {
-      priceEl.textContent = formatPrice(variant.price);
-      unavailableEl.classList.add('active');
-      cartBtn.disabled = true;
-    } else {
-      priceEl.textContent = '--';
-      unavailableEl.classList.add('active');
-      cartBtn.disabled = true;
-    }
-  }
-
-  // ╔═══════════════════════════════════════════════════════════════╗
-  // ║  INIT UI                                                     ║
-  // ╚═══════════════════════════════════════════════════════════════╝
-
-  document.getElementById('dn-iframe').src = CONFIG.embedUrl;
-
-  // --- Color swatches ---
-  var colorsEl = document.getElementById('dn-colors');
-  colors.forEach(function(colorName) {
-    var wrap = document.createElement('div');
-    wrap.className = 'dn-swatch-wrap';
-
-    var swatch = document.createElement('div');
-    swatch.className = 'dn-swatch' + (colorName === state.selectedColor ? ' dn-selected' : '');
-    if (CONFIG.colorGradient && CONFIG.colorGradient[colorName]) {
-      swatch.style.background = CONFIG.colorGradient[colorName];
-    } else {
-      swatch.style.backgroundColor = CONFIG.colorHex[colorName] || '#ccc';
-    }
-    if (colorName.toLowerCase() === 'white') swatch.style.borderColor = '#e5e5e5';
-
-    swatch.addEventListener('click', function() {
-      state.selectedColor = colorName;
-      colorsEl.querySelectorAll('.dn-swatch').forEach(function(s) { s.classList.remove('dn-selected'); });
-      swatch.classList.add('dn-selected');
-      sendColorToIframe();
-    });
-
-    var label = document.createElement('span');
-    label.className = 'dn-swatch-label';
-    label.textContent = colorName;
-
-    wrap.appendChild(swatch);
-    wrap.appendChild(label);
-    colorsEl.appendChild(wrap);
-  });
-
-  // --- Packing cards with images ---
-  var packingEl = document.getElementById('dn-packing');
-  packingOptions.forEach(function(packName) {
-    var card = document.createElement('div');
-    card.className = 'dn-packing-card' + (packName === state.selectedPacking ? ' dn-selected' : '');
-
-    var imgUrl = CONFIG.packingImages[packName] || '';
-    if (imgUrl) {
-      var img = document.createElement('img');
-      img.src = imgUrl;
-      img.alt = packName;
-      img.loading = 'lazy';
-      card.appendChild(img);
-    }
-
-    var info = document.createElement('div');
-    info.className = 'dn-packing-info';
-
-    var name = document.createElement('div');
-    name.className = 'dn-packing-name';
-    name.textContent = packName;
-    info.appendChild(name);
-
-    // Show starting price for this packing (cheapest color combo)
-    var cheapest = null;
-    variants.forEach(function(v) {
-      if (v.option2 === packName && v.available) {
-        if (!cheapest || v.price < cheapest) cheapest = v.price;
+      if (text === 'name 1' || text === 'name1') {
+        // Find the input associated with this label
+        var forId = label.getAttribute('for');
+        if (forId) {
+          name1Input = document.getElementById(forId);
+        }
+        if (!name1Input) {
+          // Try next sibling or parent's next input
+          name1Input = label.parentElement.querySelector('input[type="text"], input:not([type])');
+        }
       }
-    });
-    if (cheapest !== null) {
-      var priceTag = document.createElement('div');
-      priceTag.className = 'dn-packing-price';
-      priceTag.textContent = 'From ' + formatPrice(cheapest);
-      info.appendChild(priceTag);
+
+      if (text === 'name 2' || text === 'name2') {
+        var forId2 = label.getAttribute('for');
+        if (forId2) {
+          name2Input = document.getElementById(forId2);
+        }
+        if (!name2Input) {
+          name2Input = label.parentElement.querySelector('input[type="text"], input:not([type])');
+        }
+      }
     }
 
-    card.appendChild(info);
+    // Fallback: search by placeholder
+    if (!name1Input || !name2Input) {
+      var allInputs = document.querySelectorAll('input[type="text"], input:not([type])');
+      for (var j = 0; j < allInputs.length; j++) {
+        var inp = allInputs[j];
+        var ph = (inp.placeholder || '').toLowerCase();
+        var nm = (inp.name || '').toLowerCase();
+        if (!name1Input && (ph.indexOf('name 1') >= 0 || nm.indexOf('name_1') >= 0 || nm.indexOf('name1') >= 0)) {
+          name1Input = inp;
+        }
+        if (!name2Input && (ph.indexOf('name 2') >= 0 || nm.indexOf('name_2') >= 0 || nm.indexOf('name2') >= 0)) {
+          name2Input = inp;
+        }
+      }
+    }
 
-    card.addEventListener('click', function() {
-      state.selectedPacking = packName;
-      packingEl.querySelectorAll('.dn-packing-card').forEach(function(c) { c.classList.remove('dn-selected'); });
-      card.classList.add('dn-selected');
-      updatePrice();
-    });
-
-    packingEl.appendChild(card);
-  });
-
-  updatePrice();
+    return { name1Input: name1Input, name2Input: name2Input };
+  }
 
   // ╔═══════════════════════════════════════════════════════════════╗
-  // ║  STEP NAVIGATION                                             ║
+  // ║  ELEMENTS                                                    ║
   // ╚═══════════════════════════════════════════════════════════════╝
 
-  // Helper — send current color to iframe
-  function sendColorToIframe() {
-    var hex = CONFIG.colorHex[state.selectedColor] || '#ccc';
-    var iframe = document.getElementById('dn-iframe');
+  var previewBtn = document.getElementById('dn-preview-btn');
+  var modalOverlay = document.getElementById('dn-modal-overlay');
+  var modalClose = document.getElementById('dn-modal-close');
+  var iframe = document.getElementById('dn-iframe');
+  var modalLoading = document.getElementById('dn-modal-loading');
+  var modalNames = document.getElementById('dn-modal-names');
+
+  var iframeReady = false;
+  var pendingNames = null;
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  PREVIEW BUTTON CLICK                                        ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  previewBtn.addEventListener('click', function() {
+    var inputs = findNameInputs();
+
+    var name1 = inputs.name1Input ? inputs.name1Input.value.trim() : '';
+    var name2 = inputs.name2Input ? inputs.name2Input.value.trim() : '';
+
+    if (!name1 || !name2) {
+      alert('Please enter both Name 1 and Name 2 first.');
+      return;
+    }
+
+    // Show modal
+    modalOverlay.classList.remove('dn-hidden');
+    modalLoading.classList.remove('dn-hidden');
+    modalNames.textContent = name1 + '  ♥  ' + name2;
+    document.body.style.overflow = 'hidden';
+
+    // Load iframe if not loaded yet
+    if (!iframe.src || iframe.src === '' || iframe.src === 'about:blank') {
+      iframe.src = EMBED_URL;
+    }
+
+    // Send names to iframe
+    if (iframeReady) {
+      sendNamesToIframe(name1, name2);
+    } else {
+      pendingNames = { name1: name1, name2: name2 };
+    }
+  });
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  CLOSE MODAL                                                 ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  function closeModal() {
+    modalOverlay.classList.add('dn-hidden');
+    document.body.style.overflow = '';
+  }
+
+  modalClose.addEventListener('click', closeModal);
+
+  modalOverlay.addEventListener('click', function(e) {
+    if (e.target === modalOverlay) closeModal();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !modalOverlay.classList.contains('dn-hidden')) {
+      closeModal();
+    }
+  });
+
+  // ╔═══════════════════════════════════════════════════════════════╗
+  // ║  IFRAME COMMUNICATION                                        ║
+  // ╚═══════════════════════════════════════════════════════════════╝
+
+  function sendNamesToIframe(name1, name2) {
     if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ source: 'dual-name-parent', type: 'change-color', hex: hex }, '*');
+      iframe.contentWindow.postMessage({
+        source: 'dual-name-parent',
+        type: 'set-names',
+        name1: name1,
+        name2: name2
+      }, '*');
     }
   }
 
-  // Listen for messages from iframe
   window.addEventListener('message', function(event) {
     var data = event.data;
     if (!data || data.source !== 'dual-name') return;
 
-    // Iframe loaded — send the initial selected color
     if (data.type === 'iframe-ready') {
-      sendColorToIframe();
+      iframeReady = true;
+      // If names were pending, send them now
+      if (pendingNames) {
+        sendNamesToIframe(pendingNames.name1, pendingNames.name2);
+        pendingNames = null;
+      }
     }
 
-    // Preview is regenerating — reset wizard to step 1
     if (data.type === 'preview-loading') {
-      document.getElementById('dn-step-color').classList.add('dn-hidden');
-      document.getElementById('dn-step-packing').classList.add('dn-hidden');
+      modalLoading.classList.remove('dn-hidden');
     }
 
     if (data.type === 'preview-ready') {
-      state.name1 = data.name1;
-      state.name2 = data.name2;
-      state.screenshot = data.screenshot;
-
-      document.getElementById('dn-step-color').classList.remove('dn-hidden');
-      document.getElementById('dn-step-color').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      modalLoading.classList.add('dn-hidden');
     }
-  });
 
-  // Color → Packing
-  document.getElementById('dn-next-packing').addEventListener('click', function() {
-    document.getElementById('dn-step-color').classList.add('dn-hidden');
-    document.getElementById('dn-step-packing').classList.remove('dn-hidden');
-    updatePrice();
-    document.getElementById('dn-step-packing').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
-
-  // Back to Color
-  document.getElementById('dn-back-color').addEventListener('click', function() {
-    document.getElementById('dn-step-packing').classList.add('dn-hidden');
-    document.getElementById('dn-step-color').classList.remove('dn-hidden');
-    document.getElementById('dn-step-color').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
-
-  // ╔═══════════════════════════════════════════════════════════════╗
-  // ║  ADD TO CART                                                 ║
-  // ╚═══════════════════════════════════════════════════════════════╝
-
-  document.getElementById('dn-add-to-cart').addEventListener('click', function() {
-    var btn = this;
-    var variant = getSelectedVariant();
-
-    if (!state.name1 || !state.name2) { alert('Please generate a preview first.'); return; }
-    if (!variant || !variant.available) { alert('This combination is unavailable.'); return; }
-
-    btn.disabled = true;
-    btn.textContent = 'Adding...';
-
-    fetch('/cart/add.js', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: [{
-          id: variant.id,
-          quantity: 1,
-          properties: {
-            'Name 1': state.name1,
-            'Name 2': state.name2,
-            '_preview_image': state.screenshot
-          }
-        }]
-      })
-    })
-    .then(function(res) {
-      if (!res.ok) throw new Error('Cart API error');
-      return res.json();
-    })
-    .then(function() {
-      btn.textContent = 'Added to Cart!';
-      btn.style.background = '#10b981';
-      btn.style.borderColor = '#10b981';
-      setTimeout(function() { window.location.href = '/cart'; }, 800);
-    })
-    .catch(function(err) {
-      console.error('Add to cart failed:', err);
-      btn.disabled = false;
-      btn.textContent = 'ADD TO CART';
-      btn.style.background = '';
-      btn.style.borderColor = '';
-      alert('Failed to add to cart. Please try again.');
-    });
+    if (data.type === 'preview-error') {
+      modalLoading.classList.add('dn-hidden');
+      alert('Failed to generate preview: ' + (data.message || 'Unknown error'));
+    }
   });
 
 })();

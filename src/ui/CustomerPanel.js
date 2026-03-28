@@ -55,9 +55,16 @@ export function createCustomerPanel(container, callbacks) {
         name2: name2Input.value.trim()
       };
     },
+    setNames(name1, name2) {
+      name1Input.value = name1;
+      name2Input.value = name2;
+    },
     setLoading(on) {
       btnGenerate.disabled = on;
       btnGenerate.textContent = on ? 'Generating...' : 'Generate Preview';
+    },
+    hide() {
+      container.style.display = 'none';
     }
   };
 }

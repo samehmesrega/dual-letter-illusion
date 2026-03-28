@@ -197,6 +197,13 @@ window.addEventListener('message', (event) => {
   if (data.type === 'change-color' && data.hex) {
     changeModelColor(data.hex);
   }
+
+  // Parent sends names → hide inputs, auto-generate
+  if (data.type === 'set-names' && data.name1 && data.name2) {
+    panel.setNames(data.name1, data.name2);
+    panel.hide();
+    handleGenerate();
+  }
 });
 
 // Tell parent we're ready so it can send the initial color
