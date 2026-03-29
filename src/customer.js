@@ -4,8 +4,8 @@ import { createCustomerPanel } from './ui/CustomerPanel.js';
 import { createScene, fitCameraToObject } from './engine/SceneManager.js';
 import { buildAmbigram } from './engine/AmbigramBuilder.js';
 
-// Restrict postMessage to parent origin (falls back to '*' when not in iframe)
-const ALLOWED_ORIGIN = window.location.ancestorOrigins?.[0] || '*';
+// Parent origin — '*' allows any origin; security relies on data.source check
+const ALLOWED_ORIGIN = '*';
 
 // Fixed settings — customer doesn't control these
 const FIXED = {
@@ -190,7 +190,7 @@ function disposeGroup(group) {
 
 // Listen for messages from parent (Shopify snippet)
 window.addEventListener('message', (event) => {
-  if (ALLOWED_ORIGIN !== '*' && event.origin !== ALLOWED_ORIGIN) return;
+  // Filter by data.source instead of origin (cross-origin iframe)
   const data = event.data;
   if (!data || data.source !== 'dual-name-parent') return;
 
