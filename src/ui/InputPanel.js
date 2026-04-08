@@ -227,30 +227,21 @@ export function createInputPanel(container, callbacks) {
   btnBatch.addEventListener('click', () => {
     if (callbacks.onBatchGenerate) callbacks.onBatchGenerate(BATCH_SHEET_URL);
   });
-  function markCopied() {
+  // Track which name input was last focused
+  let lastFocusedInput = textAInput;
+  textAInput.addEventListener('focus', () => { lastFocusedInput = textAInput; });
+  textBInput.addEventListener('focus', () => { lastFocusedInput = textBInput; });
+
+  // Insert heart directly into the last focused name input
+  copyHeartBtn.addEventListener('click', () => {
+    const inp = lastFocusedInput;
+    const pos = inp.selectionStart ?? inp.value.length;
+    inp.value = inp.value.slice(0, pos) + '\u2665' + inp.value.slice(pos);
+    inp.focus();
+    inp.selectionStart = inp.selectionEnd = pos + 1;
     copyHeartBtn.classList.add('copied');
     setTimeout(() => copyHeartBtn.classList.remove('copied'), 800);
-  }
-
-  function fallbackCopy(text) {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    markCopied();
-  }
-
-  copyHeartBtn.addEventListener('click', () => {
-    const heart = '\u2665';
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(heart).then(markCopied).catch(() => fallbackCopy(heart));
-    } else {
-      fallbackCopy(heart);
-    }
+    emitChange();
   });
 
   // Copy Debug button wired up externally via onCopyDebug callback
