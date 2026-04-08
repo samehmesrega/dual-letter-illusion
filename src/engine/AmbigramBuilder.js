@@ -185,7 +185,7 @@ export async function buildAmbigram(options) {
     const maxInscrW = expectedBaseW * 0.8;
     const minInscrW = expectedBaseW * 0.3;
     const refWidth = inscrFont.getAdvanceWidth(inscrTrimmed, 72);
-    let inscrFontSize = refWidth > 0 ? 72 * maxInscrW / refWidth : 20;
+    let inscrFontSize = Math.min(20, refWidth > 0 ? 72 * maxInscrW / refWidth : 20);
     // Ensure text is at least 30% of base width
     if (refWidth > 0) {
       const actualW = refWidth * (inscrFontSize / 72);
