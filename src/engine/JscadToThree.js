@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { geometries } from '@jscad/modeling';
 
 /**
@@ -40,5 +41,9 @@ export function jscadToThree(jscadGeom) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
   geo.setAttribute('normal',   new THREE.BufferAttribute(new Float32Array(norms), 3));
-  return geo;
+
+  // Merge nearby vertices then smooth normals to reduce visible dark seam lines
+  const merged = mergeVertices(geo, 0.001);
+  merged.computeVertexNormals();
+  return merged;
 }

@@ -91,6 +91,10 @@ export function createInputPanel(container, callbacks) {
           <label for="base-thickness">Base Thickness: <span id="thickness-value">2</span> mm</label>
           <input type="range" id="base-thickness" min="1" max="5" value="2" step="0.5" />
         </div>
+        <div class="panel-section">
+          <label>Batch Sheet</label>
+          <a href="${BATCH_SHEET_URL}" target="_blank" rel="noopener" style="font-size:12px; color:#4361ee; word-break:break-all;">Open Google Sheet &#8599;</a>
+        </div>
       </div>
     </details>
 
@@ -223,11 +227,30 @@ export function createInputPanel(container, callbacks) {
   btnBatch.addEventListener('click', () => {
     if (callbacks.onBatchGenerate) callbacks.onBatchGenerate(BATCH_SHEET_URL);
   });
+  function markCopied() {
+    copyHeartBtn.classList.add('copied');
+    setTimeout(() => copyHeartBtn.classList.remove('copied'), 800);
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    markCopied();
+  }
+
   copyHeartBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText('\u2665').then(() => {
-      copyHeartBtn.classList.add('copied');
-      setTimeout(() => copyHeartBtn.classList.remove('copied'), 800);
-    });
+    const heart = '\u2665';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(heart).then(markCopied).catch(() => fallbackCopy(heart));
+    } else {
+      fallbackCopy(heart);
+    }
   });
 
   // Copy Debug button wired up externally via onCopyDebug callback

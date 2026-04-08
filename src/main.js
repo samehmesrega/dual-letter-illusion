@@ -91,7 +91,7 @@ function handleDownload() {
   const safe = (s) => s.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_');
   const orderPart = state.orderNumber ? `${safe(state.orderNumber)}-` : '';
   const filename = `DN-${orderPart}${safe(state.textA)}-${safe(state.textB)}.stl`;
-  exportToSTL(state.currentModel, filename);
+  exportToSTL(state.currentModel, filename, !!state.inscriptionText);
 }
 
 async function handleDownloadGcode(profile) {
@@ -101,8 +101,8 @@ async function handleDownloadGcode(profile) {
   const orderPart = state.orderNumber ? `${safe(state.orderNumber)}-` : '';
   const stlFilename = `DN-${orderPart}${safe(state.textA)}-${safe(state.textB)}.stl`;
 
-  // Get STL blob
-  const stlBlob = exportToSTLBlob(state.currentModel);
+  // Get STL blob (pre-scaled to mm)
+  const stlBlob = exportToSTLBlob(state.currentModel, !!state.inscriptionText);
 
   // Send to slicer API
   const form = new FormData();

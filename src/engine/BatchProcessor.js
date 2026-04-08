@@ -132,7 +132,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
         padAfter:           parseInt(padAfterStr) || 0
       });
 
-      blob = exportToSTLBlob(model);
+      blob = exportToSTLBlob(model, !!inscription);
       zip.file(filename, blob);
       entry.stl = true;
 

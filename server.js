@@ -65,8 +65,22 @@ async function runSlicer(profileName, stlPath, gcodePath) {
 
   return new Promise((resolve, reject) => {
     execFile('prusa-slicer', args, { timeout: 120_000 }, (err, stdout, stderr) => {
-      if (err) reject(new Error(stderr || err.message));
-      else resolve(stdout);
+      if (err) {
+        console.error('PrusaSlicer stderr:', stderr);
+        console.error('PrusaSlicer error:', err.message);
+        reject(new Error(stderr || err.message));
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+}
+
+// ── Check if PrusaSlicer is available ──
+async function checkSlicerAvailable() {
+  return new Promise((resolve) => {
+    execFile('prusa-slicer', ['--help'], { timeout: 10_000 }, (err) => {
+      resolve(!err);
     });
   });
 }
@@ -119,6 +133,13 @@ async function scaleSTL(filePath, targetX, targetY, targetZ) {
 // Serve built static files
 app.use(express.static(join(__dirname, 'dist')));
 
+// ── Slicer status check ──
+app.get('/api/slicer-status', async (_req, res) => {
+  const slicerOk = await checkSlicerAvailable();
+  const driveOk = !!(driveClient && DRIVE_FOLDER_ID);
+  res.json({ slicer: slicerOk, drive: driveOk });
+});
+
 // ── List available profiles ──
 app.get('/api/profiles', async (_req, res) => {
   try {
@@ -167,7 +188,9 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     res.send(gcode);
   } catch (err) {
     console.error('Slice failed:', err.message);
-    res.status(500).json({ error: 'Slicing failed', details: err.message });
+    const slicerOk = await checkSlicerAvailable();
+    const hint = !slicerOk ? ' (PrusaSlicer not found on server)' : '';
+    res.status(500).json({ error: 'Slicing failed' + hint, details: err.message });
   } finally {
     unlink(rawPath).catch(() => {});
     unlink(stlPath).catch(() => {});

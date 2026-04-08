@@ -177,11 +177,21 @@ export async function buildAmbigram(options) {
     // Load separate inscription font if provided, otherwise use main font
     const inscrFont = inscriptionFontUrl ? await loadFont(inscriptionFontUrl) : font;
 
-    // Calculate font size: 7-word sentence (≈35 chars) ≤ 100 mm, cap at 14
-    const maxInscrW = 100;
+    // Compute expected base width so inscription scales relative to it
+    const lettersW = currentX - spacing;
+    const expectedBaseW = Math.max(lettersW, 0) + basePadding * 2;
+
+    // Inscription width: 30%-80% of base width, large font always
+    const maxInscrW = expectedBaseW * 0.8;
+    const minInscrW = expectedBaseW * 0.3;
     const refWidth = inscrFont.getAdvanceWidth(inscrTrimmed, 72);
-    const inscrFontSize = Math.min(14, refWidth > 0 ? 72 * maxInscrW / refWidth : 14);
-    dbg(`  inscrFontSize: ${inscrFontSize.toFixed(1)}`);
+    let inscrFontSize = refWidth > 0 ? 72 * maxInscrW / refWidth : 20;
+    // Ensure text is at least 30% of base width
+    if (refWidth > 0) {
+      const actualW = refWidth * (inscrFontSize / 72);
+      if (actualW < minInscrW) inscrFontSize = 72 * minInscrW / refWidth;
+    }
+    dbg(`  expectedBaseW: ${expectedBaseW.toFixed(1)}, maxInscrW: ${maxInscrW.toFixed(1)}, inscrFontSize: ${inscrFontSize.toFixed(1)}`);
 
     // Full-string rendering: handles Arabic shaping, RTL, ligatures, kerning
     const result = textToJSCAD(inscrFont, inscrTrimmed, inscrFontSize);
@@ -249,7 +259,7 @@ export async function buildAmbigram(options) {
     if (orderTrimmed) {
       dbg(`\n--- ORDER NUMBER: "${orderTrimmed}" ---`);
       const orderFont = inscriptionFontUrl ? await loadFont(inscriptionFontUrl) : font;
-      const orderFontSize = 8;
+      const orderFontSize = 10;
       const orderExtrudeH = 1; // 1 mm engrave depth
 
       const orderResult = textToJSCAD(orderFont, orderTrimmed, orderFontSize);
@@ -258,7 +268,15 @@ export async function buildAmbigram(options) {
       if (orderResult) {
         const { shape, bounds } = orderResult;
         const textW = bounds.maxX - bounds.minX;
-        const targetW = 100; // 10 cm
+        // Dynamic target width: fewer chars → bigger (up to 150mm), more chars → smaller (min 70mm)
+        const minW = 70;   // 7 cm
+        const maxW = 150;  // 15 cm
+        const refLen = 6;  // text ≤ 6 chars gets max width
+        const charCount = orderTrimmed.length;
+        const targetW = charCount <= refLen
+          ? maxW
+          : Math.max(minW, maxW - (charCount - refLen) * ((maxW - minW) / 14));
+        dbg(`  orderNum chars=${charCount}, targetW=${targetW.toFixed(0)}mm`);
         const scaleFactor = textW > 0 ? targetW / textW : 1;
         const cx = (bounds.minX + bounds.maxX) / 2;
         const cy = (bounds.minY + bounds.maxY) / 2;

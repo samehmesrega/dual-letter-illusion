@@ -52,14 +52,30 @@ export function glyphToJSCAD(font, char, fontSize = 72) {
   // Sort by area descending
   valid.sort((a, b) => b.absArea - a.absArea);
 
-  // Detect holes via bbox nesting depth (even = outer, odd = hole)
+  // Detect holes via point-in-polygon nesting depth (even = outer, odd = hole)
+  // Uses actual point-in-polygon test instead of bbox-only check to avoid
+  // misclassifying K's diagonal arms as holes when their bbox fits inside the body
   for (const c of valid) {
     let depth = 0;
     for (const other of valid) {
-      if (other !== c && bboxInside(c, other)) depth++;
+      if (other !== c && other.absArea > c.absArea && pointInPolygon(c.points[0], other.points)) {
+        depth++;
+      }
     }
-    c.isHole = (depth % 2) === 1;
-    dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=${c.isHole}`);
+    // Area ratio guard: if a "hole" is > 30% of its parent's area, treat as outer
+    if (depth % 2 === 1) {
+      const parent = valid.find(o => o !== c && o.absArea > c.absArea && pointInPolygon(c.points[0], o.points));
+      if (parent && c.absArea / parent.absArea > 0.3) {
+        c.isHole = false;
+        dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=false (area ratio ${(c.absArea / parent.absArea * 100).toFixed(0)}% > 30%)`);
+      } else {
+        c.isHole = true;
+        dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=true`);
+      }
+    } else {
+      c.isHole = false;
+      dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=false`);
+    }
   }
 
   const outers = valid.filter(c => !c.isHole);
@@ -140,13 +156,20 @@ export function textToJSCAD(font, text, fontSize = 72) {
 
   valid.sort((a, b) => b.absArea - a.absArea);
 
-  // Detect holes via bbox nesting depth
+  // Detect holes via point-in-polygon nesting depth
   for (const c of valid) {
     let depth = 0;
     for (const other of valid) {
-      if (other !== c && bboxInside(c, other)) depth++;
+      if (other !== c && other.absArea > c.absArea && pointInPolygon(c.points[0], other.points)) {
+        depth++;
+      }
     }
-    c.isHole = (depth % 2) === 1;
+    if (depth % 2 === 1) {
+      const parent = valid.find(o => o !== c && o.absArea > c.absArea && pointInPolygon(c.points[0], o.points));
+      c.isHole = !(parent && c.absArea / parent.absArea > 0.3);
+    } else {
+      c.isHole = false;
+    }
   }
 
   const outers = valid.filter(c => !c.isHole);
@@ -201,7 +224,7 @@ function pointsToGeom2(points) {
 
 // ── Path sampling ─────────────────────────────────────────────────────────────
 
-const NUM_SEG = 12;
+const NUM_SEG = 20;
 
 function samplePath(commands) {
   const contours = [];
@@ -397,4 +420,18 @@ function computeSignedArea(points) {
 function bboxInside(inner, outer) {
   return inner.minX > outer.minX && inner.maxX < outer.maxX &&
          inner.minY > outer.minY && inner.maxY < outer.maxY;
+}
+
+/** Ray-casting point-in-polygon test */
+function pointInPolygon(point, polygon) {
+  const [px, py] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
 }
