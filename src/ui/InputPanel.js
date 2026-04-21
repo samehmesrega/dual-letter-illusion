@@ -116,64 +116,6 @@ export function createInputPanel(container, callbacks) {
       </div>
     </details>
 
-    <!-- TEMPORARY: tuning UI — remove once speeds are finalized in optimized.ini -->
-    <details class="panel-details">
-      <summary>Print Speeds</summary>
-      <div class="panel-details-content">
-        <div class="panel-section">
-          <label for="speed-perimeter">Perimeter</label>
-          <input type="number" id="speed-perimeter" data-speed-key="perimeter_speed" value="200" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-external-perimeter">External Perimeter</label>
-          <input type="number" id="speed-external-perimeter" data-speed-key="external_perimeter_speed" value="150" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-infill">Infill</label>
-          <input type="number" id="speed-infill" data-speed-key="infill_speed" value="200" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-solid-infill">Solid Infill</label>
-          <input type="number" id="speed-solid-infill" data-speed-key="solid_infill_speed" value="200" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-top-solid-infill">Top Solid Infill</label>
-          <input type="number" id="speed-top-solid-infill" data-speed-key="top_solid_infill_speed" value="150" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-first-layer">First Layer</label>
-          <input type="number" id="speed-first-layer" data-speed-key="first_layer_speed" value="60" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-travel">Travel</label>
-          <input type="number" id="speed-travel" data-speed-key="travel_speed" value="300" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-max-print">Max Print</label>
-          <input type="number" id="speed-max-print" data-speed-key="max_print_speed" value="200" min="10" max="500" />
-        </div>
-        <div class="panel-section">
-          <label for="speed-support">Support</label>
-          <input type="number" id="speed-support" data-speed-key="support_material_speed" value="150" min="10" max="500" />
-        </div>
-      </div>
-    </details>
-
-    <details class="panel-details">
-      <summary>Infill</summary>
-      <div class="panel-details-content">
-        <div class="panel-section">
-          <label for="infill-pattern">Pattern</label>
-          <select id="infill-pattern">
-            <option value="gyroid" selected>Gyroid</option>
-            <option value="rectilinear">Rectilinear</option>
-            <option value="grid">Grid</option>
-          </select>
-        </div>
-      </div>
-    </details>
-    <!-- END TEMPORARY -->
-
     <details class="panel-details">
       <summary>Debug</summary>
       <div class="panel-details-content">
@@ -202,14 +144,12 @@ export function createInputPanel(container, callbacks) {
   const padAfterValue   = container.querySelector('#pad-after-value');
   let padBefore = 0, padAfter = 0;
 
-  // TEMPORARY: tuning UI elements — remove once speeds are finalized
+  // Custom-scale tuning UI
   const autoScaleInput   = container.querySelector('#auto-scale');
   const customScaleGroup = container.querySelector('#custom-scale-group');
   const customScaleX     = container.querySelector('#custom-scale-x');
   const customScaleY     = container.querySelector('#custom-scale-y');
   const customScaleZ     = container.querySelector('#custom-scale-z');
-  const speedInputs      = Array.from(container.querySelectorAll('input[data-speed-key]'));
-  const infillPattern    = container.querySelector('#infill-pattern');
 
   function syncCustomScaleVisibility() {
     if (!customScaleGroup || !autoScaleInput) return;
@@ -223,20 +163,6 @@ export function createInputPanel(container, callbacks) {
       z: customScaleZ ? Number(customScaleZ.value) || 0 : 0
     };
   }
-
-  function collectSlicerOverrides() {
-    const overrides = {};
-    for (const input of speedInputs) {
-      const key = input.dataset.speedKey;
-      const n = Number(input.value);
-      if (Number.isFinite(n) && n > 0) overrides[key] = n;
-    }
-    if (infillPattern && infillPattern.value) {
-      overrides.fill_pattern = infillPattern.value;
-    }
-    return overrides;
-  }
-  // END TEMPORARY
 
   // Event handlers
   function emitChange() {
@@ -262,10 +188,8 @@ export function createInputPanel(container, callbacks) {
       orderNumber: orderNumberInput.value.trim(),
       padBefore,
       padAfter,
-      // TEMPORARY: tuning UI state
       autoScale:      autoScaleInput ? autoScaleInput.checked : true,
-      customScale:    collectCustomScale(),
-      slicerOverrides: collectSlicerOverrides()
+      customScale:    collectCustomScale()
     });
   }
 
@@ -309,7 +233,7 @@ export function createInputPanel(container, callbacks) {
     emitChange();
   });
 
-  // TEMPORARY: tuning UI listeners — remove once speeds are finalized
+  // Custom-scale listeners
   if (autoScaleInput) {
     autoScaleInput.addEventListener('change', () => {
       syncCustomScaleVisibility();
@@ -319,9 +243,6 @@ export function createInputPanel(container, callbacks) {
   [customScaleX, customScaleY, customScaleZ].forEach(el => {
     if (el) el.addEventListener('input', emitChange);
   });
-  speedInputs.forEach(input => input.addEventListener('input', emitChange));
-  if (infillPattern) infillPattern.addEventListener('change', emitChange);
-  // END TEMPORARY
 
   const btnGcode = container.querySelector('#btn-gcode');
   const profileSelect = container.querySelector('#slicer-profile');
@@ -395,10 +316,8 @@ export function createInputPanel(container, callbacks) {
         orderNumber: orderNumberInput.value.trim(),
         padBefore,
         padAfter,
-        // TEMPORARY: tuning UI state
         autoScale:    autoScaleInput ? autoScaleInput.checked : true,
-        customScale:  collectCustomScale(),
-        slicerOverrides: collectSlicerOverrides()
+        customScale:  collectCustomScale()
       };
     },
     setLoading(on) {

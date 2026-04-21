@@ -180,10 +180,9 @@ export async function processBatch(sheetUrl, options, onProgress) {
       form.append('profile', options.profile || 'optimized');
       form.append('filename', filename);
       if (inscription) form.append('hasInscription', '1');
-      // Merge tuning UI overrides with color-rule slicer settings (rule wins on conflict)
-      const mergedOverrides = { ...(options.slicerOverrides || {}), ...ruleSlicerSettings };
-      if (Object.keys(mergedOverrides).length > 0) {
-        form.append('overrides', JSON.stringify(mergedOverrides));
+      // Color-rule slicer settings (per-color overrides applied on top of the profile)
+      if (Object.keys(ruleSlicerSettings).length > 0) {
+        form.append('overrides', JSON.stringify(ruleSlicerSettings));
       }
       if (options.autoScale === false) {
         form.append('autoScale', '0');

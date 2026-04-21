@@ -16,8 +16,8 @@ const PORT = process.env.PORT || 3001;
 // Slicer profiles directory
 const PROFILES_DIR = join(__dirname, 'slicer-profiles', 'prusa-slicer');
 
-// Slicer override allowlist with per-key ranges. Used by both the tuning UI
-// (single-print overrides) and color rules (batch-mode per-color overrides).
+// Slicer override allowlist with per-key ranges. Used by color rules
+// (batch-mode per-color overrides applied on top of the selected profile).
 const ALLOWED_OVERRIDE_KEYS = {
   perimeter_speed:             { min: 10,   max: 500 },
   external_perimeter_speed:    { min: 10,   max: 500 },
@@ -303,17 +303,10 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     ? req.body.filename.replace(/\.stl$/i, '.gcode')
     : 'output.gcode';
   const gcodePath = rawPath + '.gcode';
-  let overridesPath = null;
 
   try {
     await rename(rawPath, stlPath);
 
-    // TEMPORARY: tuning UI overrides — remove once speeds are finalized
-    if (req.body.overrides) {
-      try {
-        overridesPath = await writeOverridesIni(JSON.parse(req.body.overrides));
-      } catch { /* invalid JSON — ignore */ }
-    }
     const autoScale = req.body.autoScale !== '0';
     if (autoScale) {
       const targetX = 192, targetZ = 37;
@@ -330,9 +323,8 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
       }
       // else: skip scaling entirely (use STL as-is)
     }
-    // END TEMPORARY
 
-    await runSlicer(profile, stlPath, gcodePath, overridesPath);
+    await runSlicer(profile, stlPath, gcodePath);
 
     // Upload to Google Drive (must finish before cleanup deletes the file)
     await uploadToDrive(gcodePath, gcodeFilename);
@@ -352,7 +344,6 @@ app.post('/api/slice', upload.single('stl'), async (req, res) => {
     unlink(rawPath).catch(() => {});
     unlink(stlPath).catch(() => {});
     unlink(gcodePath).catch(() => {});
-    if (overridesPath) unlink(overridesPath).catch(() => {});
   }
 });
 
@@ -374,7 +365,7 @@ app.post('/api/slice-and-upload', upload.single('stl'), async (req, res) => {
   try {
     await rename(rawPath, stlPath);
 
-    // TEMPORARY: tuning UI overrides — remove once speeds are finalized
+    // Color-rule overrides (per-color slicer settings applied on top of the profile)
     if (req.body.overrides) {
       try {
         overridesPath = await writeOverridesIni(JSON.parse(req.body.overrides));
