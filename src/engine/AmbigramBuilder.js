@@ -167,7 +167,7 @@ export async function buildAmbigram(options) {
 
   // ── Inscription (flat text on base, readable from above) ──
   let inscrDepthExtra = 0;   // extra depth the base plate needs in +Z
-  const inscrExtrudeH = 2;   // 2 mm raised above base surface
+  const inscrExtrudeH = 3;   // 3 mm raised above base surface
   const lettersCenterX = (currentX - spacing) / 2;
   const inscrTrimmed = inscriptionText.trim();
 
@@ -181,20 +181,33 @@ export async function buildAmbigram(options) {
     const lettersW = currentX - spacing;
     const expectedBaseW = Math.max(lettersW, 0) + basePadding * 2;
 
-    // Inscription width: 30%-80% of base width, large font always
-    const maxInscrW = expectedBaseW * 0.8;
-    const minInscrW = expectedBaseW * 0.3;
+    // Target inscription at ~70% of base width, but clamp the font SIZE to a
+    // sensible absolute range (10–16) so short text doesn't balloon and long
+    // text doesn't become microscopic.  As a final safety, if the clamped
+    // size still produces text wider than 90% of the base, shrink to fit.
+    const MIN_FONT = 16;
+    const MAX_FONT = 22;
+    const targetInscrW   = expectedBaseW * 0.80;
+    const hardMaxInscrW  = expectedBaseW * 0.92;
     const refWidth = inscrFont.getAdvanceWidth(inscrTrimmed, 72);
-    let inscrFontSize = Math.min(20, refWidth > 0 ? 72 * maxInscrW / refWidth : 20);
-    // Ensure text is at least 30% of base width
+    let inscrFontSize = refWidth > 0
+      ? (72 * targetInscrW / refWidth)
+      : MAX_FONT;
+    inscrFontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, inscrFontSize));
     if (refWidth > 0) {
-      const actualW = refWidth * (inscrFontSize / 72);
-      if (actualW < minInscrW) inscrFontSize = 72 * minInscrW / refWidth;
+      const actualW = refWidth * inscrFontSize / 72;
+      if (actualW > hardMaxInscrW) inscrFontSize = 72 * hardMaxInscrW / refWidth;
     }
-    dbg(`  expectedBaseW: ${expectedBaseW.toFixed(1)}, maxInscrW: ${maxInscrW.toFixed(1)}, inscrFontSize: ${inscrFontSize.toFixed(1)}`);
+    dbg(`  expectedBaseW: ${expectedBaseW.toFixed(1)}, targetW: ${targetInscrW.toFixed(1)}, inscrFontSize: ${inscrFontSize.toFixed(1)}`);
 
-    // Full-string rendering: handles Arabic shaping, RTL, ligatures, kerning
-    const result = textToJSCAD(inscrFont, inscrTrimmed, inscrFontSize);
+    // If the inscription contains heart symbols, render each heart as a
+    // programmatic heart shape (buildHeartShape) rather than letting
+    // font.getPath draw a .notdef tofu box.  Otherwise use the single-call
+    // textToJSCAD path which also handles Arabic shaping / RTL / kerning.
+    const hasHeart = /[\u2665\u2764]/.test(inscrTrimmed);
+    const result = hasHeart
+      ? renderInscriptionWithHearts(inscrFont, inscrTrimmed, inscrFontSize)
+      : textToJSCAD(inscrFont, inscrTrimmed, inscrFontSize);
     getGlyphDebugLog(); // clear log
 
     if (result) {
@@ -323,4 +336,67 @@ export async function buildAmbigram(options) {
 
   dbg(`\n=== BUILD DONE: ${group.children.length} children ===`);
   return group;
+}
+
+/**
+ * Render an inscription string that may contain heart symbols (♥/❤).
+ * Splits the text on heart chars, renders each text segment via
+ * textToJSCAD (so Arabic shaping / RTL / kerning still work within each
+ * segment) and each heart via glyphToJSCAD (which builds a proper heart
+ * shape programmatically instead of emitting a .notdef tofu box).
+ * The pieces are concatenated side-by-side along X, baseline-aligned.
+ *
+ * @returns {{shape, bounds} | null}
+ */
+function renderInscriptionWithHearts(font, text, fontSize) {
+  // Split into alternating text / heart segments
+  const segments = [];
+  let buf = '';
+  for (const ch of text) {
+    if (ch === '\u2665' || ch === '\u2764') {
+      if (buf) segments.push({ type: 'text', value: buf });
+      segments.push({ type: 'heart' });
+      buf = '';
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf) segments.push({ type: 'text', value: buf });
+
+  // Render each segment to a {shape, bounds}
+  const pieces = [];
+  for (const s of segments) {
+    const r = s.type === 'text'
+      ? textToJSCAD(font, s.value, fontSize)
+      : glyphToJSCAD(font, '\u2665', fontSize);
+    if (r) pieces.push(r);
+  }
+  if (pieces.length === 0) return null;
+
+  // Gap between segments — roughly one space at the given font size
+  const gap = fontSize * 0.18;
+
+  // Concatenate along X, baseline-aligned (minY).  Translate each piece so
+  // its local minX lands at the current cursor, then advance.
+  let cursor = 0;
+  let combined = null;
+  let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
+
+  for (const p of pieces) {
+    const dx = cursor - p.bounds.minX;
+    const shifted = transforms.translate([dx, 0, 0], p.shape);
+    combined = combined ? booleans.union(combined, shifted) : shifted;
+
+    mnX = Math.min(mnX, p.bounds.minX + dx);
+    mxX = Math.max(mxX, p.bounds.maxX + dx);
+    mnY = Math.min(mnY, p.bounds.minY);
+    mxY = Math.max(mxY, p.bounds.maxY);
+
+    cursor += (p.bounds.maxX - p.bounds.minX) + gap;
+  }
+
+  return {
+    shape: combined,
+    bounds: { minX: mnX, maxX: mxX, minY: mnY, maxY: mxY, width: mxX - mnX, height: mxY - mnY },
+  };
 }

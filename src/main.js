@@ -20,7 +20,11 @@ const state = {
   orderNumber: '',
   padBefore: 0,
   padAfter: 0,
-  currentModel:  null
+  currentModel:  null,
+  // TEMPORARY: tuning UI defaults
+  autoScale: true,
+  customScale: { x: 0, y: 0, z: 0 },
+  slicerOverrides: {}
 };
 
 // Initialize UI
@@ -110,6 +114,18 @@ async function handleDownloadGcode(profile) {
   form.append('profile', profile || 'optimized');
   form.append('filename', stlFilename);
   if (state.inscriptionText) form.append('hasInscription', '1');
+  // TEMPORARY: tuning UI — remove once speeds are finalized
+  if (state.slicerOverrides && Object.keys(state.slicerOverrides).length > 0) {
+    form.append('overrides', JSON.stringify(state.slicerOverrides));
+  }
+  if (state.autoScale === false) {
+    form.append('autoScale', '0');
+    const cs = state.customScale || {};
+    if (cs.x > 0) form.append('customScaleX', String(cs.x));
+    if (cs.y > 0) form.append('customScaleY', String(cs.y));
+    if (cs.z > 0) form.append('customScaleZ', String(cs.z));
+  }
+  // END TEMPORARY
 
   inputPanel.setLoading(true);
   try {
@@ -149,7 +165,11 @@ async function handleBatchGenerate(sheetUrl) {
       baseThickness:      state.baseThickness,
       heartStyle:         state.heartStyle,
       inscriptionFontUrl: `/fonts/${INSCRIPTION_FONT}`,
-      profile:            document.querySelector('#slicer-profile')?.value || 'optimized'
+      profile:            document.querySelector('#slicer-profile')?.value || 'optimized',
+      // TEMPORARY: tuning UI — remove once speeds are finalized
+      slicerOverrides:    state.slicerOverrides,
+      autoScale:          state.autoScale,
+      customScale:        state.customScale
     }, (current, total, status) => {
       inputPanel.setBatchProgress(current, total, status);
     });

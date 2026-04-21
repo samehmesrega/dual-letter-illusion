@@ -29,13 +29,14 @@
       <button id="dn-modal-close" class="dn-modal-close" type="button">&times;</button>
     </div>
     <div class="dn-modal-body">
-      <iframe id="dn-iframe" src="" allow="autoplay" loading="lazy"></iframe>
+      <iframe id="dn-iframe" allow="autoplay" loading="lazy"></iframe>
       <div id="dn-modal-loading" class="dn-modal-loading">
         <div class="dn-spinner"></div>
         <span>Generating your 3D preview...</span>
       </div>
     </div>
     <div id="dn-modal-names" class="dn-modal-names"></div>
+    <div class="dn-modal-note">The color shown is for preview purposes only. Your product will be made in the color you select.</div>
   </div>
 </div>
 
@@ -207,6 +208,17 @@
     text-transform: uppercase;
   }
 
+  /* ── Note ── */
+  .dn-modal-note {
+    padding: 10px 20px;
+    font-family: Poppins, sans-serif;
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    line-height: 1.4;
+    border-top: 1px solid #e5e5e5;
+  }
+
   /* ── Mobile ── */
   @media (max-width: 600px) {
     .dn-modal-overlay { padding: 10px; }
@@ -318,7 +330,7 @@
     document.body.style.overflow = 'hidden';
 
     // Load iframe if not loaded yet
-    if (!iframe.src || iframe.src === '' || iframe.src === 'about:blank') {
+    if (!iframe.src || iframe.src === 'about:blank' || iframe.src.indexOf(EMBED_URL) === -1) {
       iframe.src = EMBED_URL;
     }
 

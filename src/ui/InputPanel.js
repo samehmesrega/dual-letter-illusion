@@ -1,4 +1,5 @@
 import { FONT_FILE } from '../fonts/curated-fonts.js';
+import { openColorRulesModal } from './ColorRulesModal.js';
 
 const BATCH_SHEET_URL = 'https://docs.google.com/spreadsheets/d/19qQRLE1jzPR9Obtf4e8kcMdap_3GP32NotlntD38aKk/edit?gid=0#gid=0';
 
@@ -68,6 +69,7 @@ export function createInputPanel(container, callbacks) {
 
     <div class="panel-actions">
       <button id="btn-batch" class="btn-secondary">Generate from Google Sheet</button>
+      <button id="btn-color-rules" class="btn-secondary" style="margin-top:6px;">Manage Color Rules</button>
     </div>
     <div id="batch-progress" class="batch-progress hidden">
       <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
@@ -95,8 +97,82 @@ export function createInputPanel(container, callbacks) {
           <label>Batch Sheet</label>
           <a href="${BATCH_SHEET_URL}" target="_blank" rel="noopener" style="font-size:12px; color:#4361ee; word-break:break-all;">Open Google Sheet &#8599;</a>
         </div>
+        <!-- TEMPORARY: tuning UI — remove once speeds are finalized -->
+        <div class="panel-section">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="auto-scale" checked />
+            Auto-Scale to 192&times;42&times;37mm
+          </label>
+        </div>
+        <div class="panel-section hidden" id="custom-scale-group">
+          <label style="font-size:12px; color:var(--color-text-muted, #888);">Custom dimensions (mm) &mdash; leave 0 for original size</label>
+          <div style="display:flex; gap:6px; margin-top:4px;">
+            <input type="number" id="custom-scale-x" placeholder="X" value="50" min="0" max="300" step="1" style="flex:1; min-width:0;" />
+            <input type="number" id="custom-scale-y" placeholder="Y" value="30" min="0" max="300" step="1" style="flex:1; min-width:0;" />
+            <input type="number" id="custom-scale-z" placeholder="Z" value="20" min="0" max="300" step="1" style="flex:1; min-width:0;" />
+          </div>
+        </div>
+        <!-- END TEMPORARY -->
       </div>
     </details>
+
+    <!-- TEMPORARY: tuning UI — remove once speeds are finalized in optimized.ini -->
+    <details class="panel-details">
+      <summary>Print Speeds</summary>
+      <div class="panel-details-content">
+        <div class="panel-section">
+          <label for="speed-perimeter">Perimeter</label>
+          <input type="number" id="speed-perimeter" data-speed-key="perimeter_speed" value="200" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-external-perimeter">External Perimeter</label>
+          <input type="number" id="speed-external-perimeter" data-speed-key="external_perimeter_speed" value="150" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-infill">Infill</label>
+          <input type="number" id="speed-infill" data-speed-key="infill_speed" value="200" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-solid-infill">Solid Infill</label>
+          <input type="number" id="speed-solid-infill" data-speed-key="solid_infill_speed" value="200" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-top-solid-infill">Top Solid Infill</label>
+          <input type="number" id="speed-top-solid-infill" data-speed-key="top_solid_infill_speed" value="150" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-first-layer">First Layer</label>
+          <input type="number" id="speed-first-layer" data-speed-key="first_layer_speed" value="60" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-travel">Travel</label>
+          <input type="number" id="speed-travel" data-speed-key="travel_speed" value="300" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-max-print">Max Print</label>
+          <input type="number" id="speed-max-print" data-speed-key="max_print_speed" value="200" min="10" max="500" />
+        </div>
+        <div class="panel-section">
+          <label for="speed-support">Support</label>
+          <input type="number" id="speed-support" data-speed-key="support_material_speed" value="150" min="10" max="500" />
+        </div>
+      </div>
+    </details>
+
+    <details class="panel-details">
+      <summary>Infill</summary>
+      <div class="panel-details-content">
+        <div class="panel-section">
+          <label for="infill-pattern">Pattern</label>
+          <select id="infill-pattern">
+            <option value="gyroid" selected>Gyroid</option>
+            <option value="rectilinear">Rectilinear</option>
+            <option value="grid">Grid</option>
+          </select>
+        </div>
+      </div>
+    </details>
+    <!-- END TEMPORARY -->
 
     <details class="panel-details">
       <summary>Debug</summary>
@@ -126,6 +202,42 @@ export function createInputPanel(container, callbacks) {
   const padAfterValue   = container.querySelector('#pad-after-value');
   let padBefore = 0, padAfter = 0;
 
+  // TEMPORARY: tuning UI elements — remove once speeds are finalized
+  const autoScaleInput   = container.querySelector('#auto-scale');
+  const customScaleGroup = container.querySelector('#custom-scale-group');
+  const customScaleX     = container.querySelector('#custom-scale-x');
+  const customScaleY     = container.querySelector('#custom-scale-y');
+  const customScaleZ     = container.querySelector('#custom-scale-z');
+  const speedInputs      = Array.from(container.querySelectorAll('input[data-speed-key]'));
+  const infillPattern    = container.querySelector('#infill-pattern');
+
+  function syncCustomScaleVisibility() {
+    if (!customScaleGroup || !autoScaleInput) return;
+    customScaleGroup.classList.toggle('hidden', autoScaleInput.checked);
+  }
+
+  function collectCustomScale() {
+    return {
+      x: customScaleX ? Number(customScaleX.value) || 0 : 0,
+      y: customScaleY ? Number(customScaleY.value) || 0 : 0,
+      z: customScaleZ ? Number(customScaleZ.value) || 0 : 0
+    };
+  }
+
+  function collectSlicerOverrides() {
+    const overrides = {};
+    for (const input of speedInputs) {
+      const key = input.dataset.speedKey;
+      const n = Number(input.value);
+      if (Number.isFinite(n) && n > 0) overrides[key] = n;
+    }
+    if (infillPattern && infillPattern.value) {
+      overrides.fill_pattern = infillPattern.value;
+    }
+    return overrides;
+  }
+  // END TEMPORARY
+
   // Event handlers
   function emitChange() {
     const textA = textAInput.value.trim();
@@ -149,7 +261,11 @@ export function createInputPanel(container, callbacks) {
       inscriptionText: inscriptionInput.value.trim(),
       orderNumber: orderNumberInput.value.trim(),
       padBefore,
-      padAfter
+      padAfter,
+      // TEMPORARY: tuning UI state
+      autoScale:      autoScaleInput ? autoScaleInput.checked : true,
+      customScale:    collectCustomScale(),
+      slicerOverrides: collectSlicerOverrides()
     });
   }
 
@@ -193,6 +309,20 @@ export function createInputPanel(container, callbacks) {
     emitChange();
   });
 
+  // TEMPORARY: tuning UI listeners — remove once speeds are finalized
+  if (autoScaleInput) {
+    autoScaleInput.addEventListener('change', () => {
+      syncCustomScaleVisibility();
+      emitChange();
+    });
+  }
+  [customScaleX, customScaleY, customScaleZ].forEach(el => {
+    if (el) el.addEventListener('input', emitChange);
+  });
+  speedInputs.forEach(input => input.addEventListener('input', emitChange));
+  if (infillPattern) infillPattern.addEventListener('change', emitChange);
+  // END TEMPORARY
+
   const btnGcode = container.querySelector('#btn-gcode');
   const profileSelect = container.querySelector('#slicer-profile');
   const btnWireframe = container.querySelector('#btn-wireframe');
@@ -227,6 +357,8 @@ export function createInputPanel(container, callbacks) {
   btnBatch.addEventListener('click', () => {
     if (callbacks.onBatchGenerate) callbacks.onBatchGenerate(BATCH_SHEET_URL);
   });
+  const btnColorRules = container.querySelector('#btn-color-rules');
+  if (btnColorRules) btnColorRules.addEventListener('click', () => openColorRulesModal());
   // Track which name input was last focused
   let lastFocusedInput = textAInput;
   textAInput.addEventListener('focus', () => { lastFocusedInput = textAInput; });
@@ -262,7 +394,11 @@ export function createInputPanel(container, callbacks) {
         inscriptionText: inscriptionInput.value.trim(),
         orderNumber: orderNumberInput.value.trim(),
         padBefore,
-        padAfter
+        padAfter,
+        // TEMPORARY: tuning UI state
+        autoScale:    autoScaleInput ? autoScaleInput.checked : true,
+        customScale:  collectCustomScale(),
+        slicerOverrides: collectSlicerOverrides()
       };
     },
     setLoading(on) {

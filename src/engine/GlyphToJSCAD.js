@@ -53,8 +53,12 @@ export function glyphToJSCAD(font, char, fontSize = 72) {
   valid.sort((a, b) => b.absArea - a.absArea);
 
   // Detect holes via point-in-polygon nesting depth (even = outer, odd = hole)
-  // Uses actual point-in-polygon test instead of bbox-only check to avoid
-  // misclassifying K's diagonal arms as holes when their bbox fits inside the body
+  // Uses actual point-in-polygon test instead of bbox-only check — this is
+  // robust enough to handle K's diagonal arms (they are not topologically
+  // nested inside the body contour), so no additional area-ratio guard is
+  // needed. An earlier 30% area guard was removed because for letters like
+  // O, D, Q the inner counter is naturally 40–60% of the outer area,
+  // causing holes to be misclassified as outer contours.
   for (const c of valid) {
     let depth = 0;
     for (const other of valid) {
@@ -62,20 +66,8 @@ export function glyphToJSCAD(font, char, fontSize = 72) {
         depth++;
       }
     }
-    // Area ratio guard: if a "hole" is > 30% of its parent's area, treat as outer
-    if (depth % 2 === 1) {
-      const parent = valid.find(o => o !== c && o.absArea > c.absArea && pointInPolygon(c.points[0], o.points));
-      if (parent && c.absArea / parent.absArea > 0.3) {
-        c.isHole = false;
-        dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=false (area ratio ${(c.absArea / parent.absArea * 100).toFixed(0)}% > 30%)`);
-      } else {
-        c.isHole = true;
-        dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=true`);
-      }
-    } else {
-      c.isHole = false;
-      dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=false`);
-    }
+    c.isHole = (depth % 2 === 1);
+    dbg(`  contour: area=${c.signedArea.toFixed(1)}, depth=${depth}, isHole=${c.isHole}`);
   }
 
   const outers = valid.filter(c => !c.isHole);
@@ -156,7 +148,7 @@ export function textToJSCAD(font, text, fontSize = 72) {
 
   valid.sort((a, b) => b.absArea - a.absArea);
 
-  // Detect holes via point-in-polygon nesting depth
+  // Detect holes via point-in-polygon nesting depth (even-odd fill rule)
   for (const c of valid) {
     let depth = 0;
     for (const other of valid) {
@@ -164,12 +156,7 @@ export function textToJSCAD(font, text, fontSize = 72) {
         depth++;
       }
     }
-    if (depth % 2 === 1) {
-      const parent = valid.find(o => o !== c && o.absArea > c.absArea && pointInPolygon(c.points[0], o.points));
-      c.isHole = !(parent && c.absArea / parent.absArea > 0.3);
-    } else {
-      c.isHole = false;
-    }
+    c.isHole = (depth % 2 === 1);
   }
 
   const outers = valid.filter(c => !c.isHole);

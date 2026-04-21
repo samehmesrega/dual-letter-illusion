@@ -1,19 +1,19 @@
 :root {
-  --color-bg: #f5f7fa;
+  --color-bg: #f8fafc;
   --color-surface: #ffffff;
-  --color-surface-alt: #f8f9fc;
-  --color-primary: #4361ee;
-  --color-primary-hover: #3a56d4;
-  --color-primary-light: rgba(67, 97, 238, 0.08);
-  --color-accent: #ef476f;
-  --color-text: #1e293b;
+  --color-surface-alt: #f1f5f9;
+  --color-primary: #e11d48;
+  --color-primary-hover: #be123c;
+  --color-primary-light: rgba(225, 29, 72, 0.08);
+  --color-accent: #f43f5e;
+  --color-text: #0f172a;
   --color-text-muted: #64748b;
   --color-border: #e2e8f0;
-  --color-border-focus: #4361ee;
+  --color-border-focus: #e11d48;
   --color-warning: #d97706;
   --color-success: #10b981;
   --panel-width: 340px;
-  --header-height: 64px;
+  --header-height: 56px;
   --radius: 10px;
   --radius-sm: 6px;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
@@ -39,9 +39,9 @@ body {
 /* ── Header ── */
 #app-header {
   height: var(--header-height);
-  padding: 0 28px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: 0 24px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -51,9 +51,9 @@ body {
 }
 
 #app-header h1 {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: #f1f5f9;
   letter-spacing: -0.01em;
   display: flex;
   align-items: baseline;
@@ -63,7 +63,7 @@ body {
 .header-brand {
   font-size: 0.7rem;
   font-weight: 400;
-  color: var(--color-text-muted);
+  color: #94a3b8;
   letter-spacing: 0.02em;
 }
 

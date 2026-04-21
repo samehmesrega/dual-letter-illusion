@@ -97,11 +97,25 @@ export async function processBatch(sheetUrl, options, onProgress) {
   const zip = new JSZip();
   const report = [];
 
+  // Fetch color rules once before the loop
+  let colorRules = [];
+  try {
+    const r = await fetch('/api/color-rules');
+    if (r.ok) colorRules = (await r.json()).rules || [];
+  } catch { /* no rules — proceed without */ }
+  const findRule = (color) => {
+    if (!color) return null;
+    const target = color.trim().toLowerCase();
+    return colorRules.find(r => r.enabled && r.color.toLowerCase() === target) || null;
+  };
+
   for (let i = 0; i < total; i++) {
     await new Promise(r => setTimeout(r, 0)); // yield to main thread for UI updates
     const [orderNum, color, textA, textB, inscription, padBeforeStr, padAfterStr] = dataRows[i];
     const colorPart = color ? `-${safe(color)}` : '';
-    const filename = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}${colorPart}.stl`;
+    const baseName = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}${colorPart}`;
+    const filename = `${baseName}.stl`;
+    const gcodeFilename = `${baseName}.gcode`;
 
     const entry = {
       order: orderNum || String(i + 1),
@@ -113,6 +127,12 @@ export async function processBatch(sheetUrl, options, onProgress) {
       failedAt: null
     };
 
+    // Resolve color rule for this row (if any). Rule values override options.
+    const rule = findRule(color);
+    const ruleSettings = rule?.settings || {};
+    const { baseThickness: ruleBaseThickness, ...ruleSlicerSettings } = ruleSettings;
+    const effectiveBaseThickness = ruleBaseThickness ?? options.baseThickness;
+
     // Step 1: Generate STL
     onProgress(i + 1, total, `[${i + 1}/${total}] STL: ${textA} + ${textB}...`);
     let blob;
@@ -123,7 +143,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
         fontUrl:            options.fontUrl,
         fontSize:           options.fontSize,
         cornerRadius:       options.cornerRadius,
-        baseHeight:         options.baseThickness,
+        baseHeight:         effectiveBaseThickness,
         heartStyle:         options.heartStyle || 1,
         inscriptionText:    inscription || '',
         inscriptionFontUrl: options.inscriptionFontUrl,
@@ -133,7 +153,6 @@ export async function processBatch(sheetUrl, options, onProgress) {
       });
 
       blob = exportToSTLBlob(model, !!inscription);
-      zip.file(filename, blob);
       entry.stl = true;
 
       // Dispose geometries to free memory
@@ -158,6 +177,19 @@ export async function processBatch(sheetUrl, options, onProgress) {
       form.append('profile', options.profile || 'optimized');
       form.append('filename', filename);
       if (inscription) form.append('hasInscription', '1');
+      // Merge tuning UI overrides with color-rule slicer settings (rule wins on conflict)
+      const mergedOverrides = { ...(options.slicerOverrides || {}), ...ruleSlicerSettings };
+      if (Object.keys(mergedOverrides).length > 0) {
+        form.append('overrides', JSON.stringify(mergedOverrides));
+      }
+      if (options.autoScale === false) {
+        form.append('autoScale', '0');
+        const cs = options.customScale || {};
+        if (cs.x > 0) form.append('customScaleX', String(cs.x));
+        if (cs.y > 0) form.append('customScaleY', String(cs.y));
+        if (cs.z > 0) form.append('customScaleZ', String(cs.z));
+      }
+      // END TEMPORARY
 
       const res = await fetch('/api/slice-and-upload', { method: 'POST', body: form });
       if (!res.ok) throw new Error('Server error');
@@ -165,6 +197,14 @@ export async function processBatch(sheetUrl, options, onProgress) {
       const result = await res.json();
       entry.gcode = result.gcode;
       entry.drive = result.drive;
+
+      // Add gcode to ZIP if slicing succeeded
+      if (result.gcode && result.gcodeBase64) {
+        const binary = atob(result.gcodeBase64);
+        const bytes = new Uint8Array(binary.length);
+        for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+        zip.file(gcodeFilename, bytes);
+      }
 
       if (!result.gcode) {
         entry.failedAt = 'G-code';
