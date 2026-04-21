@@ -85,7 +85,7 @@ export async function processBatch(sheetUrl, options, onProgress) {
     throw new Error('Sheet has no data rows (need header + at least 1 row).');
   }
 
-  // Skip header row — columns: Order number, Color, Name 1, Name 2, Text on base, Pad Before, Pad After
+  // Skip header row — columns: Order number, Color, Name 1, Name 2, Text on base, Pad Before, Pad After, Note
   const dataRows = allRows.slice(1).filter(row => row[2] && row[3]);
 
   if (dataRows.length === 0) {
@@ -114,9 +114,10 @@ export async function processBatch(sheetUrl, options, onProgress) {
 
   for (let i = 0; i < total; i++) {
     await new Promise(r => setTimeout(r, 0)); // yield to main thread for UI updates
-    const [orderNum, color, textA, textB, inscription, padBeforeStr, padAfterStr] = dataRows[i];
+    const [orderNum, color, textA, textB, inscription, padBeforeStr, padAfterStr, note] = dataRows[i];
     const colorPart = color ? `-${safe(color)}` : '';
-    const baseName = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}${colorPart}`;
+    const notePart = note && note.trim() ? `-${safe(note.trim())}` : '';
+    const baseName = `DN-${safe(orderNum || String(i + 1))}-${safe(textA)}-${safe(textB)}${colorPart}${notePart}`;
     const filename = `${baseName}.stl`;
     const gcodeFilename = `${baseName}.gcode`;
 
