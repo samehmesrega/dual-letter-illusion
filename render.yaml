@@ -19,3 +19,7 @@ services:
         sync: false
       - key: GOOGLE_REFRESH_TOKEN
         sync: false
+    disk:
+      name: dna-data
+      mountPath: /app/data
+      sizeGB: 1
