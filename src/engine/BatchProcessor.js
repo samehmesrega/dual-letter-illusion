@@ -103,10 +103,13 @@ export async function processBatch(sheetUrl, options, onProgress) {
     const r = await fetch('/api/color-rules');
     if (r.ok) colorRules = (await r.json()).rules || [];
   } catch { /* no rules — proceed without */ }
+  // Sort by color-name length (desc) so more specific rules match first.
+  // e.g. "Luminous green" wins over "Luminous" when sheet says "Luminous green".
+  const sortedRules = [...colorRules].sort((a, b) => b.color.length - a.color.length);
   const findRule = (color) => {
     if (!color) return null;
     const target = color.trim().toLowerCase();
-    return colorRules.find(r => r.enabled && r.color.toLowerCase() === target) || null;
+    return sortedRules.find(r => r.enabled && target.includes(r.color.trim().toLowerCase())) || null;
   };
 
   for (let i = 0; i < total; i++) {
